@@ -76,12 +76,11 @@ const osThreadAttr_t UpdataTask_attributes = {
   .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityBelowNormal,
 };
-/* Definitions for ConnectTask */
-osThreadId_t ConnectTaskHandle;
-const osThreadAttr_t ConnectTask_attributes = {
-  .name = "ConnectTask",
-  .stack_size = 512 * 4,
-  .priority = (osPriority_t) osPriorityHigh,
+osThreadId_t BoardTaskHandle;
+const osThreadAttr_t BoardTask_attributes = {
+  .name = "BoardTask",
+  .stack_size = 256 * 4,
+  .priority = (osPriority_t) osPriorityAboveNormal,
 };
 
 /* Private function prototypes -----------------------------------------------*/
@@ -93,7 +92,7 @@ void StartMonitorTask(void *argument);
 void StartCtrlTask(void *argument);
 void StartCommandTask(void *argument);
 void StartUpdataTask(void *argument);
-void StartConnectTask(void *argument);
+void StartBoardTask(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -136,8 +135,7 @@ void MX_FREERTOS_Init(void) {
   /* creation of UpdataTask */
   UpdataTaskHandle = osThreadNew(StartUpdataTask, NULL, &UpdataTask_attributes);
 
-  /* creation of ConnectTask */
-  ConnectTaskHandle = osThreadNew(StartConnectTask, NULL, &ConnectTask_attributes);
+  BoardTaskHandle = osThreadNew(StartBoardTask, NULL, &BoardTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -219,24 +217,6 @@ __weak void StartUpdataTask(void *argument)
     osDelay(1);
   }
   /* USER CODE END StartUpdataTask */
-}
-
-/* USER CODE BEGIN Header_StartConnectTask */
-/**
-* @brief Function implementing the ConnectTask thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_StartConnectTask */
-__weak void StartConnectTask(void *argument)
-{
-  /* USER CODE BEGIN StartConnectTask */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
-  /* USER CODE END StartConnectTask */
 }
 
 /* Private application code --------------------------------------------------*/

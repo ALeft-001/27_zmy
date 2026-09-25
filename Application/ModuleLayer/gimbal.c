@@ -1,49 +1,25 @@
 #include "gimbal.h"
-#include "board_protocol.h"
+#include "board.h"
 #include "rc_sensor.h"
 #include "rp_math.h"
 
-static void Gimbal_Init(Gimbal_t* gimbal);
-static uint8_t Board_Is_Online(void);
 static void Gimbal_Info_Update(Gimbal_t* gimbal);
 static void Gimbal_Target_Update(Gimbal_t* gimbal);
 static void Gimbal_Car_State_Update(Gimbal_t* gimbal);
 static void Gimbal_Cmd_Transmit(Gimbal_t* gimbal);
-static void Gimbal_Work(Gimbal_t* gimbal);
 
 Gimbal_t gimbal = {
 	.mode = G_SLEEP,
-	.init = Gimbal_Init,
 };
-
-static void Gimbal_Init(Gimbal_t* gimbal)
-{
-	gimbal->work = Gimbal_Work;
-}
-
-static uint8_t Board_Is_Online(void)
-{
-	if(board.status->last_rx_tick == 0)
-	{
-		return 0;
-	}
-
-	if(HAL_GetTick() - board.status->last_rx_tick > BOARD_LOST_TICK)
-	{
-		return 0;
-	}
-
-	return 1;
-}
 
 static void Gimbal_Info_Update(Gimbal_t* gimbal)
 {
-	gimbal->info.yaw_imu = board.rx_meg->gimbal_meg.yaw_imu;
+	gimbal->info.yaw_imu = board.rx_data->gimbal_data.yaw_imu;
 }
 
 static void Gimbal_Target_Update(Gimbal_t* gimbal)
 {
-	if(Board_Is_Online() == 0)
+	if(Board_Is_Online(&board) == 0)
 	{
 		gimbal->init_flag = 0;
 		gimbal->mode = G_SLEEP;
@@ -84,19 +60,18 @@ static void Gimbal_Car_State_Update(Gimbal_t* gimbal)
 		car_state = CAR_RC;
 	}
 
-	board.tx_pkt->car_pkt.car_state = car_state;
-	board.tx_pkt->car_pkt.gimbal_mode = (gimbal->mode == G_GYRO) ? 1 : 0;
+	board.tx_data->car_data.car_state = car_state;
 }
 
 static void Gimbal_Cmd_Transmit(Gimbal_t* gimbal)
 {
-	board.tx_pkt->gimbal_target_pkt.yaw_imu_tar = gimbal->target.yaw_imu_tar;
-	board.tx_pkt->gimbal_target_pkt.pitch_imu_tar = 0.f;
-	board.tx_pkt->gimbal_target_pkt.yaw_mec_tar = 0.f;
-	board.tx_pkt->gimbal_target_pkt.pitch_mec_tar = 0.f;
+	board.tx_data->gimbal_target_data.yaw_imu_tar = gimbal->target.yaw_imu_tar;
+	board.tx_data->gimbal_target_data.pitch_imu_tar = 0.f;
+	board.tx_data->gimbal_target_data.yaw_mec_tar = 0.f;
+	board.tx_data->gimbal_target_data.pitch_mec_tar = 0.f;
 }
 
-static void Gimbal_Work(Gimbal_t* gimbal)
+void Gimbal_Work(Gimbal_t* gimbal)
 {
 	Gimbal_Info_Update(gimbal);
 	Gimbal_Target_Update(gimbal);

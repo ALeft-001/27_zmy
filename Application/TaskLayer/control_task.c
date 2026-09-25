@@ -14,7 +14,7 @@ void StartCtrlTask(void const * argument)
 	for(;;)
 	{
 		Chassis_Work(&chassis);
-		gimbal.work(&gimbal);
+		Gimbal_Work(&gimbal);
 
 		osDelay(1);
 	}

@@ -1,192 +1,90 @@
 #include "board_protocol.h"
-#include "string.h"
-#include <stdbool.h>
 #include "drv_can.h"
-#include "rp_device_config.h"
-#include "rp_math.h"
 
-
-Board_Tx_Pkt_t    board_tx_pkt;
-Board_Rx_Meg_t    board_rx_meg;
-
-Board_Status_t board_status = 
+static uint16_t board_float_to_uint(float x, float x_min, float x_max, uint16_t max_u)
 {
-	.offline_cnt_max = BOARD_OFFLINE_CNT_MAX,
-};
-
-Board_t board = 
-{
-	.tx_pkt = &board_tx_pkt,
-	.rx_meg = &board_rx_meg,
-	.status = &board_status,
-	
-	.init = Board_Init,
-};
-
-
-
-void Board_Init(Board_t* board)
-{
-	board->status->offline_cnt = board->status->offline_cnt_max;
-	board->status->status = DEV_OFFLINE;
-	
-	board->tx_01 = Board_Tx_Pkt_01;
-	board->tx_02 = Board_Tx_Pkt_02;
-	board->tx_03 = Board_Tx_Pkt_03;
-	board->tx_04 = Board_Tx_Pkt_04;
-	
-	board->rx_01 = Board_Rx_Meg_01;
-	board->rx_02 = Board_Rx_Meg_02;
-	
-}
-
-
-
-uint8_t  pkt_01[8];
-uint8_t  pkt_02[8];
-uint8_t  pkt_03[8];
-uint8_t  pkt_04[8];
-
-void Board_Tx_Pkt_01(Board_t* board)
-{
-	memset(pkt_01, 0, 8);
-	
-	pkt_01[0] |= (board->tx_pkt->car_pkt.car_state & 0x03) << 0;
-	pkt_01[0] |= (board->tx_pkt->car_pkt.gimbal_mode & 0x01) << 2;
-	pkt_01[0] |= (board->tx_pkt->car_pkt.vision_mode & 0x07) << 3;
-	pkt_01[0] |= (board->tx_pkt->car_pkt.game_start & 0x01) << 6;
-	pkt_01[0] |= (board->tx_pkt->car_pkt.my_color & 0x01) << 7;
-	
-	uint16_t t1,t2;
-	
-	t1 = float_to_uint(board->tx_pkt->car_pkt.v_x,-8000.f,8000.f,65535);      //pitch������ģʽĿ��Ƕ�
-	t2 = float_to_uint(board->tx_pkt->car_pkt.v_y,-8000.f,8000.f,65535);  
-	
-	pkt_01[1] = t1>>8;
-	pkt_01[2] = t1;
-	pkt_01[3] = t2>>8;
-	pkt_01[4] = t2;
-
-									 
-	pkt_01[5] |= (board->tx_pkt->shoot_pkt.launch_state & 0x01) << 0;
-	pkt_01[5] |= (board->tx_pkt->shoot_pkt.shoot_mode & 0x01) << 1;
-	pkt_01[5] |= (board->tx_pkt->shoot_pkt.shoot_level & 0x01) << 2;
-	pkt_01[5] |= (board->tx_pkt->gimbal_target_pkt.is_hole & 0x01) << 3;
-	
-
-	CAN_SendData(&hfdcan2, ID_PKT_01, pkt_01);
-	
-//	board->status->offline_cnt ++;
-	
-}
-
-void Board_Tx_Pkt_02(Board_t* board)
-{
-	uint16_t t1,t2,t3,t4;
-	
-	t1 = float_to_uint(board->tx_pkt->gimbal_target_pkt.pitch_imu_tar,-360.f,360.f,65535);      //pitch������ģʽĿ��Ƕ�
-	t2 = float_to_uint(board->tx_pkt->gimbal_target_pkt.yaw_imu_tar,-360.f,360.f,65535);  
-	t3 = float_to_uint(board->tx_pkt->gimbal_target_pkt.pitch_mec_tar,-4.f,4.f,65535);     //pitch��еģʽĿ��Ƕ�
-	t4 = float_to_uint(board->tx_pkt->gimbal_target_pkt.yaw_mec_tar,-4.f,4.f,65535);        //ywa�ᷢ���Ƕ�ƫ��
-	  
-	pkt_02[0] = t1>>8;
-	pkt_02[1] = t1;
-	pkt_02[2] = t2>>8;
-	pkt_02[3] = t2;
-	pkt_02[4] = t3>>8;
-	pkt_02[5] = t3;
-	pkt_02[6] = t4>>8;
-	pkt_02[7] = t4;
-	
-
-		CAN_SendData(&hfdcan2, ID_PKT_02, pkt_02);
-
-	
-//	board->status->offline_cnt ++;
-	
-}
-
-void Board_Tx_Pkt_03(Board_t* board)
-{
-	uint16_t t1,t2;
-	
-	t1 = float_to_uint(board->tx_pkt->judge_shoot_pkt.shoot_speed,-50.f,50.f,65535);    
-	t2 = float_to_uint(board->tx_pkt->judge_shoot_pkt.shoot_freq,-50.f,50.f,65535);  
-	
-	board->tx_pkt->judge_shoot_pkt.shoot_heat_err = 0;
-
-	pkt_03[0] = t1>>8;
-	pkt_03[1] = t1;
-	pkt_03[2] = t2>>8;
-	pkt_03[3] = t2;
-	pkt_03[4] = board->tx_pkt->judge_shoot_pkt.shoot_heat_err>>8;
-	pkt_03[5] = board->tx_pkt->judge_shoot_pkt.shoot_heat_err;
-	pkt_03[6] = 0;
-	pkt_03[7] = 0;
-	
-
-	CAN_SendData(&hfdcan2, ID_PKT_03, pkt_03);
-	
-//	board->status->offline_cnt ++;
-	
-}
-
-
-void Board_Tx_Pkt_04(Board_t* board)
-{
-	for(uint8_t i = 0;i<8;i++)
+	if(x < x_min)
 	{
-	  pkt_04[i] = board->tx_pkt->blood_pkt.blood[i];
+		x = x_min;
+	}
+	else if(x > x_max)
+	{
+		x = x_max;
 	}
 
-	CAN_SendData(&hfdcan2, ID_PKT_04, pkt_04);
-	
-//	board->status->offline_cnt ++;
-	
+	return (uint16_t)((x - x_min) * (float)max_u / (x_max - x_min));
 }
 
-
-void Board_Rx_Meg_01(Board_t* board,uint8_t* rxbuf)
+static float board_uint_to_float(uint16_t x_int, float x_min, float x_max, uint16_t max_u)
 {
-	board->rx_meg->state_meg.yaw_motor_state= (rxbuf[0] >> 0) & 0x01;
-	board->rx_meg->state_meg.pitch_motor_state= (rxbuf[0] >> 1) & 0x01;
-	board->rx_meg->state_meg.height_motor_state= (rxbuf[0] >> 2) & 0x01;
-	board->rx_meg->state_meg.r_fric_state= (rxbuf[0] >> 3) & 0x01;
-	board->rx_meg->state_meg.l_fric_state= (rxbuf[0] >> 4) & 0x01;
-	board->rx_meg->state_meg.dial_motor_state= (rxbuf[0] >> 5) & 0x01;
-	board->rx_meg->state_meg.vision_state= (rxbuf[0] >> 6) & 0x01;
-	board->rx_meg->state_meg.is_down= rxbuf[1];
-	
-	uint16_t t1 = ((uint16_t)rxbuf[2] << 8) | rxbuf[3];  
-  uint16_t t2 = ((uint16_t)rxbuf[4] << 8) | rxbuf[5];
-
-  board->rx_meg->vision_meg.vision_yaw_tar = uint_to_float(t1, -360.0f, 360.0f,65535);
-  board->rx_meg->vision_meg.vision_pitch_tar = uint_to_float(t2, -360.0f, 360.0f,65535);
-	board->rx_meg->vision_meg.is_find_target = (rxbuf[6] >> 0) & 0x01;
-	
-
- 
-	
-	board->status->offline_cnt = 0;
-	board->status->last_rx_tick = HAL_GetTick();
+	return (float)x_int * (x_max - x_min) / (float)max_u + x_min;
 }
 
-
-void Board_Rx_Meg_02(Board_t* board,uint8_t* rxbuf)
+uint8_t Board_Is_Online(Board_t* board)
 {
-  uint16_t t1 = ((uint16_t)rxbuf[0] << 8) | rxbuf[1];  
-  uint16_t t2 = ((uint16_t)rxbuf[2] << 8) | rxbuf[3];
-  uint16_t t3 = ((uint16_t)rxbuf[4] << 8) | rxbuf[5];
-  uint16_t t4 = ((uint16_t)rxbuf[6] << 8) | rxbuf[7];
-    
-  board->rx_meg->gimbal_meg.yaw_mec     = uint_to_float(t1, -4.f, 4.f,65535);
-  board->rx_meg->gimbal_meg.pitch_mec   = uint_to_float(t2, -4.f, 4.f,65535);
-  board->rx_meg->gimbal_meg.yaw_imu     = uint_to_float(t3, -360.0f, 360.0f,65535);
-  board->rx_meg->gimbal_meg.pitch_imu   = uint_to_float(t4, -360.0f, 360.0f,65535);
+	if(board->last_rx_tick == 0)
+	{
+		return 0;
+	}
 
-	board->status->offline_cnt = 0;
-	board->status->last_rx_tick = HAL_GetTick();
+	if(HAL_GetTick() - board->last_rx_tick > BOARD_LOST_TICK)
+	{
+		return 0;
+	}
+
+	return 1;
 }
 
+void Board_Tx_Car_Data(Board_t* board)
+{
+	uint8_t pkt[8] = {0};
 
+	pkt[0] |= (board->tx_data->car_data.car_state & 0x03) << 0;
 
+	CAN_SendData(&hfdcan2, ID_CAR_DATA, pkt);
+}
+
+void Board_Tx_Gimbal_Target(Board_t* board)
+{
+	uint8_t pkt[8] = {0};
+
+	uint16_t t1 = board_float_to_uint(board->tx_data->gimbal_target_data.pitch_imu_tar, -360.f, 360.f, 65535);
+	uint16_t t2 = board_float_to_uint(board->tx_data->gimbal_target_data.yaw_imu_tar, -360.f, 360.f, 65535);
+	uint16_t t3 = board_float_to_uint(board->tx_data->gimbal_target_data.pitch_mec_tar, -4.f, 4.f, 65535);
+	uint16_t t4 = board_float_to_uint(board->tx_data->gimbal_target_data.yaw_mec_tar, -4.f, 4.f, 65535);
+
+	pkt[0] = t1 >> 8;
+	pkt[1] = t1;
+	pkt[2] = t2 >> 8;
+	pkt[3] = t2;
+	pkt[4] = t3 >> 8;
+	pkt[5] = t3;
+	pkt[6] = t4 >> 8;
+	pkt[7] = t4;
+
+	CAN_SendData(&hfdcan2, ID_GIMBAL_TARGET, pkt);
+}
+
+void Board_Rx_State_Data(Board_t* board, uint8_t* rxBuf)
+{
+	board->rx_data->state_data.yaw_motor_state = (rxBuf[0] >> 0) & 0x01;
+	board->rx_data->state_data.r_fric_state = (rxBuf[0] >> 3) & 0x01;
+	board->rx_data->state_data.is_down = rxBuf[1];
+
+	board->last_rx_tick = HAL_GetTick();
+}
+
+void Board_Rx_Gimbal_Data(Board_t* board, uint8_t* rxBuf)
+{
+	uint16_t t1 = ((uint16_t)rxBuf[0] << 8) | rxBuf[1];
+	uint16_t t2 = ((uint16_t)rxBuf[2] << 8) | rxBuf[3];
+	uint16_t t3 = ((uint16_t)rxBuf[4] << 8) | rxBuf[5];
+	uint16_t t4 = ((uint16_t)rxBuf[6] << 8) | rxBuf[7];
+
+	board->rx_data->gimbal_data.yaw_mec   = board_uint_to_float(t1, -4.f, 4.f, 65535);
+	board->rx_data->gimbal_data.pitch_mec = board_uint_to_float(t2, -4.f, 4.f, 65535);
+	board->rx_data->gimbal_data.yaw_imu   = board_uint_to_float(t3, -360.f, 360.f, 65535);
+	board->rx_data->gimbal_data.pitch_imu = board_uint_to_float(t4, -360.f, 360.f, 65535);
+
+	board->last_rx_tick = HAL_GetTick();
+}

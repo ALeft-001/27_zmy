@@ -566,9 +566,9 @@
               <FilePath>..\Application\TaskLayer\observe_task.c</FilePath>
             </File>
             <File>
-              <FileName>connect_task.c</FileName>
+              <FileName>board_task.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\Application\TaskLayer\connect_task.c</FilePath>
+              <FilePath>..\Application\TaskLayer\board_task.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -676,6 +676,11 @@
               <FileName>motor.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\Application\DeviceLayer\motor.c</FilePath>
+            </File>
+            <File>
+              <FileName>board.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Application\DeviceLayer\board.c</FilePath>
             </File>
           </Files>
         </Group>

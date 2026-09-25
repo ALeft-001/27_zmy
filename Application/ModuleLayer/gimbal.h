@@ -5,7 +5,6 @@
 
 #define   GIMBAL_YAW_STEP        0.18f
 
-#define   BOARD_LOST_TICK        50
 #define   GIMBAL_RC_LOST_TICK    60
 
 typedef enum{
@@ -32,11 +31,11 @@ typedef struct Gimbal_Struct_t{
 
 	uint8_t          init_flag;
 
-	void (*init)(struct Gimbal_Struct_t* gimbal);
-	void (*work)(struct Gimbal_Struct_t* gimbal);
-
 }Gimbal_t;
 
 extern Gimbal_t gimbal;
+
+/* Exported functions --------------------------------------------------------*/
+void Gimbal_Work(Gimbal_t* gimbal);
 
 #endif

@@ -1,5 +1,5 @@
 #include "can_protocol.h"
-#include "board_protocol.h"
+#include "board.h"
 
 
 void CAN1_rxDataHandler(uint32_t rxId, uint8_t *rxBuf)
@@ -32,12 +32,12 @@ void CAN2_rxDataHandler(uint32_t rxId, uint8_t *rxBuf)
 {
 	switch (rxId)
 	{
-		case ID_MEG_01:
-			board.rx_01(&board, rxBuf);
+		case ID_STATE_DATA:
+			Board_Rx_State_Data(&board, rxBuf);
 			break;
 
-		case ID_MEG_02:
-			board.rx_02(&board, rxBuf);
+		case ID_GIMBAL_DATA:
+			Board_Rx_Gimbal_Data(&board, rxBuf);
 			break;
 
 		default:
