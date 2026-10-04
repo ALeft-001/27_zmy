@@ -3,19 +3,28 @@
 #include "rc_sensor.h"
 #include "rp_math.h"
 
-static void Gimbal_Info_Update(Gimbal_t* gimbal);
+static void Gimbal_Data_Update(Gimbal_t* gimbal);
 static void Gimbal_Target_Update(Gimbal_t* gimbal);
 static void Gimbal_Car_State_Update(Gimbal_t* gimbal);
 static void Gimbal_Cmd_Transmit(Gimbal_t* gimbal);
+static void Chassis_Data_Update(Chassis_yaw_t* chassis_yaw);
 
-Gimbal_t gimbal = {
-	.mode = G_SLEEP,
-};
+Gimbal_t gimbal = {	.mode = G_SLEEP,};
+Chassis_yaw_t chassis_yaw;
+extern imu_sensor_t imu_sensor;
+extern Board_Rx_Data_t board_rx_data;
 
-static void Gimbal_Info_Update(Gimbal_t* gimbal)
+static void Gimbal_Data_Update(Gimbal_t* gimbal)
 {
-	gimbal->info.yaw_imu = board.rx_data->gimbal_data.yaw_imu;
+	gimbal->data.yaw_imu = board.rx_data->gimbal_data.yaw_imu;
 }
+
+static void Chassis_Data_Update(Chassis_yaw_t* chassis_yaw)
+{
+	chassis_yaw->yaw_last = chassis_yaw->yaw_current;
+	chassis_yaw->yaw_current = imu_sensor.info->base_info.yaw;
+}
+
 
 static void Gimbal_Target_Update(Gimbal_t* gimbal)
 {
@@ -38,7 +47,9 @@ static void Gimbal_Target_Update(Gimbal_t* gimbal)
 	if(gimbal->init_flag == 0)
 	{
 		gimbal->init_flag = 1;
-		gimbal->target.yaw_imu_tar = gimbal->info.yaw_imu;
+		gimbal->target.yaw_imu_tar = gimbal->data.yaw_imu; //+ motor_half_cycle(GIMBAL_YAW_FRONT - board.rx_data->gimbal_data.yaw_mec, 25) * (180.f / PI);//DM量程
+		gimbal->target.yaw_imu_tar = motor_half_cycle(gimbal->target.yaw_imu_tar, 360.f);
+		gimbal->target.pitch_mec_tar = GIMBAL_PITCH_MIDDLE;
 		return;
 	}
 
@@ -47,8 +58,28 @@ static void Gimbal_Target_Update(Gimbal_t* gimbal)
 		return;
 	}
 
-	gimbal->target.yaw_imu_tar -= RC_RIGH_CH_LR_VALUE / 660.f * GIMBAL_YAW_STEP;
-	gimbal->target.yaw_imu_tar = motor_half_cycle(gimbal->target.yaw_imu_tar, 360.f);
+	if(rc_sensor_info.s2.value == RC_SW_DOWN)  //纯操作模式
+	{
+		gimbal->target.yaw_imu_tar -= RC_RIGH_CH_LR_VALUE / 660.f * GIMBAL_YAW_STEP;
+		gimbal->target.yaw_imu_tar = motor_half_cycle(gimbal->target.yaw_imu_tar, 360.f);
+		gimbal->target.pitch_mec_tar += RC_RIGH_CH_UD_VALUE / 660.f * GIMBAL_PITCH_STEP_RAD;
+		gimbal->target.pitch_mec_tar = constrain(gimbal->target.pitch_mec_tar,GIMBAL_PITCH_MIN,GIMBAL_PITCH_MAX);
+	}
+
+	else if(rc_sensor_info.s2.value == RC_SW_MID)      //云台跟随底盘
+	{
+		gimbal->target.yaw_imu_tar += chassis_yaw.yaw_current - chassis_yaw.yaw_last;
+		gimbal->target.yaw_imu_tar = motor_half_cycle(gimbal->target.yaw_imu_tar, 360.f);
+		gimbal->target.pitch_mec_tar = GIMBAL_PITCH_MIDDLE;
+	}
+
+	else     //小陀螺模式的云台保持
+	{
+		gimbal->target.pitch_mec_tar = GIMBAL_PITCH_MIDDLE;
+		gimbal->target.yaw_imu_tar -= chassis_yaw.yaw_current - chassis_yaw.yaw_last;
+		gimbal->target.yaw_imu_tar -= RC_RIGH_CH_LR_VALUE /660.f * GIMBAL_YAW_STEP;
+		gimbal->target.yaw_imu_tar = motor_half_cycle(gimbal->target.yaw_imu_tar, 360.f);
+	}
 }
 
 static void Gimbal_Car_State_Update(Gimbal_t* gimbal)
@@ -66,14 +97,13 @@ static void Gimbal_Car_State_Update(Gimbal_t* gimbal)
 static void Gimbal_Cmd_Transmit(Gimbal_t* gimbal)
 {
 	board.tx_data->gimbal_target_data.yaw_imu_tar = gimbal->target.yaw_imu_tar;
-	board.tx_data->gimbal_target_data.pitch_imu_tar = 0.f;
-	board.tx_data->gimbal_target_data.yaw_mec_tar = 0.f;
-	board.tx_data->gimbal_target_data.pitch_mec_tar = 0.f;
+	board.tx_data->gimbal_target_data.pitch_mec_tar = gimbal->target.pitch_mec_tar;
 }
 
 void Gimbal_Work(Gimbal_t* gimbal)
 {
-	Gimbal_Info_Update(gimbal);
+	Gimbal_Data_Update(gimbal);
+	Chassis_Data_Update(&chassis_yaw);
 	Gimbal_Target_Update(gimbal);
 	Gimbal_Car_State_Update(gimbal);
 	Gimbal_Cmd_Transmit(gimbal);

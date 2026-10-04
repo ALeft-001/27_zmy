@@ -48,30 +48,15 @@ void Board_Tx_Gimbal_Target(Board_t* board)
 {
 	uint8_t pkt[8] = {0};
 
-	uint16_t t1 = board_float_to_uint(board->tx_data->gimbal_target_data.pitch_imu_tar, -360.f, 360.f, 65535);
 	uint16_t t2 = board_float_to_uint(board->tx_data->gimbal_target_data.yaw_imu_tar, -360.f, 360.f, 65535);
 	uint16_t t3 = board_float_to_uint(board->tx_data->gimbal_target_data.pitch_mec_tar, -4.f, 4.f, 65535);
-	uint16_t t4 = board_float_to_uint(board->tx_data->gimbal_target_data.yaw_mec_tar, -4.f, 4.f, 65535);
 
-	pkt[0] = t1 >> 8;
-	pkt[1] = t1;
 	pkt[2] = t2 >> 8;
 	pkt[3] = t2;
 	pkt[4] = t3 >> 8;
 	pkt[5] = t3;
-	pkt[6] = t4 >> 8;
-	pkt[7] = t4;
 
 	CAN_SendData(&hfdcan2, ID_GIMBAL_TARGET, pkt);
-}
-
-void Board_Rx_State_Data(Board_t* board, uint8_t* rxBuf)
-{
-	board->rx_data->state_data.yaw_motor_state = (rxBuf[0] >> 0) & 0x01;
-	board->rx_data->state_data.r_fric_state = (rxBuf[0] >> 3) & 0x01;
-	board->rx_data->state_data.is_down = rxBuf[1];
-
-	board->last_rx_tick = HAL_GetTick();
 }
 
 void Board_Rx_Gimbal_Data(Board_t* board, uint8_t* rxBuf)
@@ -81,8 +66,8 @@ void Board_Rx_Gimbal_Data(Board_t* board, uint8_t* rxBuf)
 	uint16_t t3 = ((uint16_t)rxBuf[4] << 8) | rxBuf[5];
 	uint16_t t4 = ((uint16_t)rxBuf[6] << 8) | rxBuf[7];
 
-	board->rx_data->gimbal_data.yaw_mec   = board_uint_to_float(t1, -4.f, 4.f, 65535);
-	board->rx_data->gimbal_data.pitch_mec = board_uint_to_float(t2, -4.f, 4.f, 65535);
+	board->rx_data->gimbal_data.yaw_mec   = board_uint_to_float(t1, -12.5f, 12.5f, 65535);
+	board->rx_data->gimbal_data.pitch_mec = board_uint_to_float(t2, -12.5f, 12.5f, 65535);
 	board->rx_data->gimbal_data.yaw_imu   = board_uint_to_float(t3, -360.f, 360.f, 65535);
 	board->rx_data->gimbal_data.pitch_imu = board_uint_to_float(t4, -360.f, 360.f, 65535);
 

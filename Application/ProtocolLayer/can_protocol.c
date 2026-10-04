@@ -32,10 +32,6 @@ void CAN2_rxDataHandler(uint32_t rxId, uint8_t *rxBuf)
 {
 	switch (rxId)
 	{
-		case ID_STATE_DATA:
-			Board_Rx_State_Data(&board, rxBuf);
-			break;
-
 		case ID_GIMBAL_DATA:
 			Board_Rx_Gimbal_Data(&board, rxBuf);
 			break;

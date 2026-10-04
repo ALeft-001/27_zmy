@@ -38,7 +38,6 @@ typedef struct Chassis_Struct_t{
 
 extern Chassis_t chassis;
 
-/* Exported functions --------------------------------------------------------*/
 void Chassis_Work(Chassis_t* chassis);
 
 #endif

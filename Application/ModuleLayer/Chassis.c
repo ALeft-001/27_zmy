@@ -14,9 +14,7 @@ static void Chassis_Cmd_Transmit(Chassis_t* chassis);
 
 int8_t chassis_wheel_sign[WHEEL_CNT] = {1, 1, 1, 1};
 
-Chassis_t chassis = {
-	.wheel = &wheel_set,
-};
+Chassis_t chassis = {.wheel = &wheel_set,};
 
 static void Chassis_Target_Clear(Chassis_t* chassis)
 {
@@ -80,7 +78,20 @@ static void Chassis_Target_Update(Chassis_t* chassis)
 
 	chassis->target.front_speed = -RC_LEFT_CH_UD_VALUE / 660.f * FRONT_MAX_SPEED;
 	chassis->target.left_speed = RC_LEFT_CH_LR_VALUE / 660.f * LEFT_MAX_SPEED;
-	chassis->target.cycle_speed = (rc_sensor_info.s2.value == RC_SW_UP) ? TURN_CYCLE_SPEED : 0;
+  if (rc_sensor_info.s2.value == RC_SW_UP)
+  {
+    chassis->target.cycle_speed = TURN_CYCLE_SPEED;
+  }
+  
+  else if (rc_sensor_info.s2.value == RC_SW_MID)
+  {
+	chassis->target.cycle_speed = RC_RIGH_CH_LR_VALUE / 660.f * TURN_CYCLE_SPEED;
+  }
+
+  else
+  {
+    chassis->target.cycle_speed = 0;
+  }
 }
 
 static void Chassis_Inverse_Calculate(Chassis_t* chassis)

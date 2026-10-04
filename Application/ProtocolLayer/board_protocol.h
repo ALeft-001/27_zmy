@@ -11,7 +11,6 @@
 
 #define  ID_CAR_DATA        0xD1
 #define  ID_GIMBAL_TARGET   0xD2
-#define  ID_STATE_DATA      0xC1
 #define  ID_GIMBAL_DATA     0xC2
 
 typedef struct{
@@ -20,10 +19,8 @@ typedef struct{
 }Board_Car_Data_t;
 
 typedef struct{
-	float    yaw_mec_tar;
 	float    yaw_imu_tar;
 	float    pitch_mec_tar;
-	float    pitch_imu_tar;
 
 }Board_Gimbal_Target_Data_t;
 
@@ -36,13 +33,6 @@ typedef struct{
 }Board_Gimbal_Data_t;
 
 typedef struct{
-	uint8_t  yaw_motor_state;
-	uint8_t  r_fric_state;
-	uint8_t  is_down;
-
-}Board_State_Data_t;
-
-typedef struct{
 	Board_Car_Data_t             car_data;
 	Board_Gimbal_Target_Data_t   gimbal_target_data;
 
@@ -50,7 +40,6 @@ typedef struct{
 
 typedef struct{
 	Board_Gimbal_Data_t          gimbal_data;
-	Board_State_Data_t           state_data;
 
 }Board_Rx_Data_t;
 
@@ -66,7 +55,6 @@ uint8_t Board_Is_Online(Board_t* board);
 void Board_Tx_Car_Data(Board_t* board);
 void Board_Tx_Gimbal_Target(Board_t* board);
 
-void Board_Rx_State_Data(Board_t* board, uint8_t* rxBuf);
 void Board_Rx_Gimbal_Data(Board_t* board, uint8_t* rxBuf);
 
 #endif

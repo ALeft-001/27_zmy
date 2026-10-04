@@ -1,12 +1,11 @@
 #ifndef __RM_MOTOR_H
 #define __RM_MOTOR_H
 
-/* Includes ------------------------------------------------------------------*/
 #include "rp_config.h"
 #include "pid.h"
 #include "drv_can.h"
 
-/* Exported typedef ----------------------------------------------------------*/
+
 #define _3508_TORQUE_CONSTANT     0.3f
 #define _3508_MAX_CURRENT         20.f
 #define _3508_REDUCT_RATIO        (19.f/1.f)
@@ -22,9 +21,9 @@ typedef struct Motor_RM_Born_Data_struct_t
 
 typedef struct Motor_RM_Rx_Data_struct_t
 {
-	int16_t encoder_speed;//rpm(r/min)
+	int16_t encoder_speed;
 
-	float speed;//rad/s
+	float speed;
 
 	uint16_t encoder;
 
@@ -71,7 +70,7 @@ typedef struct Motor_RM_Set_struct_t
 	FDCAN_HandleTypeDef *hcan;
 }Motor_RM_Set_t;
 
-/* Exported functions --------------------------------------------------------*/
+
 void RM_Motor_Update(Motor_RM_t *motor, uint8_t *rxBuf);
 void RM_Set_Torque(Motor_RM_Set_t *set);
 

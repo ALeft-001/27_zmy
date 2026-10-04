@@ -4,16 +4,14 @@
 
 pid_ctrl_t wheel_speed_pid[WHEEL_CNT] = {
 	[WHEEL_LF] = { .kp = 0.15f, .ki = 0, .kd = 0, .integral_max = 0, .out_max = 1.5f },
-	[WHEEL_LB] = { .kp = 0.15f, .ki = 0, .kd = 0, .integral_max = 0, .out_max = 1.5f },
+  [WHEEL_LB] = { .kp = 0.15f, .ki = 0, .kd = 0, .integral_max = 0, .out_max = 1.5f },
 	[WHEEL_RF] = { .kp = 0.15f, .ki = 0, .kd = 0, .integral_max = 0, .out_max = 1.5f },
-	[WHEEL_RB] = { .kp = 0.15f, .ki = 0, .kd = 0, .integral_max = 0, .out_max = 1.5f },
+  [WHEEL_RB] = { .kp = 0.15f, .ki = 0, .kd = 0, .integral_max = 0, .out_max = 1.5f },
 };
 
 Motor_RM_Born_Data_t wheel_born_data[WHEEL_CNT] = {
-	[WHEEL_LF] = { .rxId = 0, .stdId = 0x200, .hcan = &hfdcan1 },
-	[WHEEL_LB] = { .rxId = 1, .stdId = 0x200, .hcan = &hfdcan1 },
-	[WHEEL_RF] = { .rxId = 2, .stdId = 0x200, .hcan = &hfdcan1 },
-	[WHEEL_RB] = { .rxId = 3, .stdId = 0x200, .hcan = &hfdcan1 },
+	[WHEEL_LF] = { .rxId = 0, .stdId = 0x200, .hcan = &hfdcan1 },[WHEEL_LB] = { .rxId = 1, .stdId = 0x200, .hcan = &hfdcan1 },
+	[WHEEL_RF] = { .rxId = 2, .stdId = 0x200, .hcan = &hfdcan1 },[WHEEL_RB] = { .rxId = 3, .stdId = 0x200, .hcan = &hfdcan1 },
 };
 
 Motor_RM_Rx_Data_t   wheel_rx_data[WHEEL_CNT];
