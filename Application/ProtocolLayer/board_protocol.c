@@ -37,23 +37,12 @@ uint8_t Board_Is_Online(Board_t* board)
 	return 1;
 }
 
-void Board_Tx_State_Data(Board_t* board)
-{
-	uint8_t pkt[8] = {0};
-
-	pkt[0] |= (board->tx_data->state_data.yaw_motor_state & 0x01) << 0;
-	pkt[0] |= (board->tx_data->state_data.r_fric_state & 0x01) << 3;
-	pkt[1] = board->tx_data->state_data.is_down;
-
-	CAN_SendData(&hcan2, ID_STATE_DATA, pkt);
-}
-
 void Board_Tx_Gimbal_Data(Board_t* board)
 {
 	uint8_t pkt[8] = {0};
 
-	uint16_t t1 = board_float_to_uint(board->tx_data->gimbal_data.yaw_mec, -4.f, 4.f, 65535);
-	uint16_t t2 = board_float_to_uint(board->tx_data->gimbal_data.pitch_mec, -4.f, 4.f, 65535);
+	uint16_t t1 = board_float_to_uint(board->tx_data->gimbal_data.yaw_mec, -12.5f, 12.5f, 65535);
+	uint16_t t2 = board_float_to_uint(board->tx_data->gimbal_data.pitch_mec, -12.5f, 12.5f, 65535);
 	uint16_t t3 = board_float_to_uint(board->tx_data->gimbal_data.yaw_imu, -360.f, 360.f, 65535);
 	uint16_t t4 = board_float_to_uint(board->tx_data->gimbal_data.pitch_imu, -360.f, 360.f, 65535);
 
@@ -78,15 +67,11 @@ void Board_Rx_Car_Data(Board_t* board, uint8_t* rxBuf)
 
 void Board_Rx_Gimbal_Target(Board_t* board, uint8_t* rxBuf)
 {
-	uint16_t t1 = ((uint16_t)rxBuf[0] << 8) | rxBuf[1];
 	uint16_t t2 = ((uint16_t)rxBuf[2] << 8) | rxBuf[3];
 	uint16_t t3 = ((uint16_t)rxBuf[4] << 8) | rxBuf[5];
-	uint16_t t4 = ((uint16_t)rxBuf[6] << 8) | rxBuf[7];
 
-	board->rx_data->gimbal_target_data.pitch_imu_tar = board_uint_to_float(t1, -360.f, 360.f, 65535);
 	board->rx_data->gimbal_target_data.yaw_imu_tar   = board_uint_to_float(t2, -360.f, 360.f, 65535);
 	board->rx_data->gimbal_target_data.pitch_mec_tar = board_uint_to_float(t3, -4.f, 4.f, 65535);
-	board->rx_data->gimbal_target_data.yaw_mec_tar   = board_uint_to_float(t4, -4.f, 4.f, 65535);
 
 	board->last_rx_tick = HAL_GetTick();
 }

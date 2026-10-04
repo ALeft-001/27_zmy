@@ -23,5 +23,6 @@ typedef struct pid_ctrl {
 } pid_ctrl_t;
 void integral_to_zero(pid_ctrl_t *pid);
 void single_pid_ctrl(pid_ctrl_t *pid);
+float all_pid_calc(pid_ctrl_t *out, pid_ctrl_t *inn, float target, float mea_out, float mea_in, float inner_kp, uint8_t err_cal_mode);
 
 #endif

@@ -18,8 +18,7 @@ void DEVICE_Init(void)
 {
 	imu_sensor.init(&imu_sensor);
 	rc_sensor.init(&rc_sensor);
-	rm_motor_list_init();
-    kt_motor_list_init();
-	ht_motor_list_init();
+	RM_Motor_Init(&R_Fric);
+	RM_Group_Motor_Init(&RM_Group);
 }
 

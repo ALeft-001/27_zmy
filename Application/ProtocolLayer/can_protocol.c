@@ -6,15 +6,14 @@ void CAN1_rxDataHandler(uint32_t rxId, uint8_t *rxBuf)
 {
 	switch (rxId)
 	{
-		case 0x0b:
-		{
-			L_Wheel.rx(&L_Wheel, rxBuf);
-			
-			break;
-		}
 		case 0x205:
 		{
 			R_Fric.rx(&R_Fric, rxBuf);
+			break;
+		}
+		case ID_GIMB_P:
+		{
+			DM_Motor_Update(&Pitch_Motor, rxBuf);
 			break;
 		}
 

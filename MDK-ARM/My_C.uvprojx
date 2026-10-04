@@ -617,19 +617,9 @@
               <FilePath>..\Application\HardwareLayer\RM_motor.c</FilePath>
             </File>
             <File>
-              <FileName>HT_motor.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\Application\HardwareLayer\HT_motor.c</FilePath>
-            </File>
-            <File>
               <FileName>DM_Motor.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\Application\HardwareLayer\DM_Motor.c</FilePath>
-            </File>
-            <File>
-              <FileName>KT_motor.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\Application\HardwareLayer\KT_motor.c</FilePath>
             </File>
           </Files>
         </Group>

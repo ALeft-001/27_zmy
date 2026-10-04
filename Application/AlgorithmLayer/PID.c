@@ -1,8 +1,6 @@
 #include "pid.h"
 #include "rp_math.h"
-/**
- *  @name   single_pid_ctrl
- */
+
 void single_pid_ctrl(pid_ctrl_t *pid)
 {
     // 保存误差值(需要在外面自行计算误差)
@@ -20,3 +18,33 @@ void single_pid_ctrl(pid_ctrl_t *pid)
     pid->last_err = pid->err;
 }
 
+float all_pid_calc(pid_ctrl_t *out, pid_ctrl_t *inn, float target, float mea_out, float mea_in, float inner_kp, uint8_t err_cal_mode)
+{
+	if(inn == NULL)
+	{
+		return 0;
+	}
+
+	if(out == NULL)
+	{
+		inn->target = target;
+		inn->measure = mea_in;
+		inn->err = inn->target - inn->measure;
+		single_pid_ctrl(inn);
+		return inn->out;
+	}
+
+	out->target = target;
+	out->measure = mea_out;
+	out->err = out->target - out->measure;
+
+
+	single_pid_ctrl(out);
+
+	inn->target = out->out;
+	inn->measure = mea_in * inner_kp;
+	inn->err = inn->target + inn->measure;
+	single_pid_ctrl(inn);
+
+	return inn->out;
+}

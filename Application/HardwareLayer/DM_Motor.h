@@ -4,20 +4,16 @@
 /* Includes ------------------------------------------------------------------*/
 #include "rp_config.h"
 #include "arm_math.h"
-#include "HT_Motor.h"
 #include "drv_can.h"
 #include "drv_tick.h"
 #include "rp_math.h"
 /* Exported typedef ----------------------------------------------------------*/
-#ifndef __HT_MOTOR_H
 typedef enum Motor_MIT_Command_enum_e
 {
 	Enter_Motor_Mode,
-	Exit_Motor_Mode,
 	Zero_Position_Sensor,
 
 }Motor_MIT_Command_e;
-#endif
 
 #define P_MIN -12.5f    // Radians
 #define P_MAX 12.5f
@@ -32,18 +28,19 @@ typedef enum Motor_MIT_Command_enum_e
 #define C_MIN -10.0f    // A
 #define C_MAX 10.0f
 
-typedef enum Motor_DM_Work_state_enum_e
+#define DM_MOTOR_LOST_TICK 50
+
+typedef enum Motor_DM_State_enum_e
 {
-	Motor_Enable,
-	Motor_Unenable,
-	Over_Voltage,
-	Lack_Voltage,
-	Over_Current,
-	MOS_OverTemp,
-	Motor_OverTemp,
-	Commun_Loss,
-	Unknow_Err,
-}Motor_DM_Work_state_e;
+	DM_Disable       = 0,
+	DM_Enable        = 1,
+	DM_OverVoltage   = 8,
+	DM_LackVoltage   = 9,
+	DM_OverCurrent   = 10,
+	DM_MosOverTemp   = 11,
+	DM_MotorOverTemp = 12,
+	DM_CommunLoss    = 13,
+}Motor_DM_State_e;
 
 typedef struct Motor_DM_Born_Data_struct_t
 {
@@ -57,7 +54,6 @@ typedef struct Motor_DM_Born_Data_struct_t
 	FDCAN_HandleTypeDef *hcan;
 #endif
 
-	int8_t order_correction;
 }Motor_DM_Born_Data_t;
 
 typedef struct Motor_DM_Rx_Data_struct_t
@@ -66,11 +62,9 @@ typedef struct Motor_DM_Rx_Data_struct_t
 
 	float torque;
 
-	float motor_angle_sum;
-
 	float motor_angle;
 
-	float motor_angle_last;
+	uint32_t last_rx_tick;
 }Motor_DM_Rx_Data_t;
 
 typedef struct Motor_DM_Tx_Data_struct_t
@@ -90,11 +84,7 @@ typedef struct Motor_DM_Tx_Data_struct_t
 
 typedef struct Motor_DM_State_Data_struct_t
 {
-	dev_work_state_t status;
-
-	Motor_DM_Work_state_e motor_state;
-
-	Motor_DM_Work_state_e last_motor_state;
+	Motor_DM_State_e  err_code;
 }Motor_DM_State_Data_t;
 
 typedef struct Motor_DM_struct_t
@@ -109,11 +99,11 @@ typedef struct Motor_DM_struct_t
 }Motor_DM_t;
 
 /* Exported functions --------------------------------------------------------*/
+uint8_t DM_Motor_Is_Ready(Motor_DM_t *motor);
+void DM_Motor_Coast(Motor_DM_t *motor);
 void DM_Motor_Update(Motor_DM_t *motor, uint8_t *rxBuf);
 void DM_Motor_Sleep(Motor_DM_t *motor);
 void DM_Motor_ZeroPos(Motor_DM_t *motor);
 void DM_Set_Torque(Motor_DM_t *motor);
-void DM_Set_Speed(Motor_DM_t *motor);
-void DM_Set_Angle(Motor_DM_t *motor);
 
 #endif
