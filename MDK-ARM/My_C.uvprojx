@@ -81,7 +81,7 @@
           </BeforeMake>
           <AfterMake>
             <RunUserProg1>0</RunUserProg1>
-            <RunUserProg2>1</RunUserProg2>
+            <RunUserProg2>0</RunUserProg2>
             <UserProg1Name></UserProg1Name>
             <UserProg2Name></UserProg2Name>
             <UserProg1Dos16Mode>0</UserProg1Dos16Mode>
@@ -523,9 +523,6 @@
           </Files>
         </Group>
         <Group>
-          <GroupName>Control</GroupName>
-        </Group>
-        <Group>
           <GroupName>Module</GroupName>
           <Files>
             <File>
@@ -537,6 +534,36 @@
               <FileName>gimbal.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\Application\ModuleLayer\gimbal.h</FilePath>
+            </File>
+            <File>
+              <FileName>Dial.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Application\ModuleLayer\Dial.c</FilePath>
+            </File>
+            <File>
+              <FileName>Fric.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Application\ModuleLayer\Fric.c</FilePath>
+            </File>
+            <File>
+              <FileName>Dial.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Application\ModuleLayer\Dial.h</FilePath>
+            </File>
+            <File>
+              <FileName>Fric.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Application\ModuleLayer\Fric.h</FilePath>
+            </File>
+            <File>
+              <FileName>Shoot.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Application\ModuleLayer\Shoot.c</FilePath>
+            </File>
+            <File>
+              <FileName>Shoot.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Application\ModuleLayer\Shoot.h</FilePath>
             </File>
           </Files>
         </Group>
@@ -620,6 +647,11 @@
               <FileName>DM_Motor.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\Application\HardwareLayer\DM_Motor.c</FilePath>
+            </File>
+            <File>
+              <FileName>LK_Motor.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Application\HardwareLayer\LK_Motor.c</FilePath>
             </File>
           </Files>
         </Group>

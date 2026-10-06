@@ -217,9 +217,9 @@ HAL_StatusTypeDef CAN_SendData(CAN_HandleTypeDef *hcan, uint32_t stdId, uint8_t 
 	{
 		return HAL_ERROR;
 	}
-	
+
 	return HAL_OK;
-	
+
 }
 /* rxData Handler [Weak] functions -------------------------------------------*/
 /**

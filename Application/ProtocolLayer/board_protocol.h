@@ -3,7 +3,7 @@
 
 #include "stdint.h"
 
-#define  BOARD_LOST_TICK    50
+#define  BOARD_LOST_TICK    70
 
 #define  CAR_SLEEP     0
 #define  CAR_RC        1
@@ -12,6 +12,7 @@
 #define  ID_CAR_DATA        0xD1
 #define  ID_GIMBAL_TARGET   0xD2
 #define  ID_GIMBAL_DATA     0xC2
+#define  ID_SHOOT_TARGET    0xD3      
 
 typedef struct{
 	uint8_t  car_state;
@@ -37,10 +38,18 @@ typedef struct{
 
 }Board_Tx_Data_t;
 
+typedef struct Board_Shoot_Rx_Data_Struct_t
+{
+	uint8_t enable;
+	uint8_t mode;
+	uint8_t trigger;
+}Board_Shoot_Rx_Data_t;
+
+
 typedef struct{
 	Board_Car_Data_t             car_data;
 	Board_Gimbal_Target_Data_t   gimbal_target_data;
-
+	Board_Shoot_Rx_Data_t	shoot_target;
 }Board_Rx_Data_t;
 
 typedef struct Board_Struct_t{
@@ -56,5 +65,6 @@ void Board_Tx_Gimbal_Data(Board_t* board);
 
 void Board_Rx_Car_Data(Board_t* board, uint8_t* rxBuf);
 void Board_Rx_Gimbal_Target(Board_t* board, uint8_t* rxBuf);
+void Board_Rx_Shoot_Target(Board_t* board, uint8_t* rxBuf);
 
 #endif

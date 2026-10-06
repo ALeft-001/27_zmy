@@ -30,7 +30,7 @@ static void Gimbal_Target_Update(Gimbal_t* gimbal)
 	}
 
 	gimbal->target.yaw_target = board.rx_data->gimbal_target_data.yaw_imu_tar;
-
+	
 	gimbal->target.pitch_target = constrain(board.rx_data->gimbal_target_data.pitch_mec_tar / PI * 180.f, PITCH_MEC_MIN_ANGLE, PITCH_MEC_MAX_ANGLE);
 	gimbal->target.pitch_target = motor_half_cycle(gimbal->target.pitch_target, 360.f);
 }
@@ -76,6 +76,13 @@ static void Gimbal_Torque_Zero(Gimbal_t* gimbal)
 {
 	gimbal->out.yaw_out = 0.f;
 	gimbal->out.pitch_out = 0.f;
+
+	if(Board_Is_Online(&board) != 0 && DM_Motor_Is_Ready(&Yaw_Motor) == 0)
+	{
+		DM_Set_Torque(&Yaw_Motor);
+		DM_Set_Torque(&Pitch_Motor);
+		return;
+	}
 
 	DM_Motor_Coast(&Yaw_Motor);
 	DM_Motor_Coast(&Pitch_Motor);

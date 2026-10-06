@@ -1,19 +1,30 @@
 #include "can_protocol.h"
 #include "board.h"
+#include "motor.h"
 
 
 void CAN1_rxDataHandler(uint32_t rxId, uint8_t *rxBuf)
 {
 	switch (rxId)
 	{
-		case 0x205:
+		case ID_R_FRIC:
 		{
-			R_Fric.rx(&R_Fric, rxBuf);
+			RM_Motor_Update(&R_Fric, rxBuf);
+			break;
+		}
+		case ID_L_FRIC:
+		{
+			RM_Motor_Update(&L_Fric, rxBuf);
 			break;
 		}
 		case ID_GIMB_P:
 		{
 			DM_Motor_Update(&Pitch_Motor, rxBuf);
+			break;
+		}
+		case ID_DIAL:
+		{
+			LK_Motor_Update(&Dial_Motor, rxBuf);
 			break;
 		}
 
@@ -42,7 +53,11 @@ void CAN2_rxDataHandler(uint32_t canId, uint8_t *rxBuf)
 			DM_Motor_Update(&Yaw_Motor, rxBuf);
 			break;
 		}
-
+		case ID_SHOOT_TARGET:
+		{
+			Board_Rx_Shoot_Target(&board,rxBuf);
+			break;
+		}
 		default:
 			break;
 	}

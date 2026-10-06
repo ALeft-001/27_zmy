@@ -35,7 +35,6 @@ typedef struct Gimbal_Struct_t{
 
 extern Gimbal_t gimbal;
 
-/* Exported functions --------------------------------------------------------*/
 void Gimbal_Work(Gimbal_t* gimbal);
 
 #endif
