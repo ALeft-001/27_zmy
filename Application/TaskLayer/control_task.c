@@ -1,12 +1,7 @@
-/**
-  ******************************************************************************
-  * @file    control_task.c
-  * @brief
-  ******************************************************************************
-  */
 #include "control_task.h"
 #include "chassis.h"
 #include "gimbal.h"
+#include "Shoot.h"
 
 void StartCtrlTask(void const * argument)
 {
@@ -15,7 +10,7 @@ void StartCtrlTask(void const * argument)
 	{
 		Chassis_Work(&chassis);
 		Gimbal_Work(&gimbal);
-
+		Shoot_Work(&shoot);
 		osDelay(1);
 	}
 }

@@ -2,7 +2,9 @@
 #include "rc_sensor.h"
 #include "config_chassis.h"
 #include "rp_math.h"
+#include "board.h"
 #include "pid.h"
+#include "gimbal.h"
 
 static void Chassis_Target_Clear(Chassis_t* chassis);
 static uint8_t Chassis_Should_Coast(Chassis_t* chassis);
@@ -76,22 +78,35 @@ static void Chassis_Target_Update(Chassis_t* chassis)
 			return;
 	}
 
-	chassis->target.front_speed = -RC_LEFT_CH_UD_VALUE / 660.f * FRONT_MAX_SPEED;
-	chassis->target.left_speed = RC_LEFT_CH_LR_VALUE / 660.f * LEFT_MAX_SPEED;
-  if (rc_sensor_info.s2.value == RC_SW_UP)
-  {
-    chassis->target.cycle_speed = TURN_CYCLE_SPEED;
-  }
-  
-  else if (rc_sensor_info.s2.value == RC_SW_MID)
-  {
-	chassis->target.cycle_speed = RC_RIGH_CH_LR_VALUE / 660.f * TURN_CYCLE_SPEED;
-  }
+	float vx = -RC_LEFT_CH_UD_VALUE / 660.f * FRONT_MAX_SPEED;
+	float vy = RC_LEFT_CH_LR_VALUE / 660.f * LEFT_MAX_SPEED;
+	float yaw = 0.f;
+  	if (rc_sensor_info.s2.value == RC_SW_UP)
+  	{
+		yaw = board.rx_data->gimbal_data.yaw_mec - GIMBAL_YAW_FRONT;
+        float c = cosf(yaw);
+        float s = sinf(yaw);
 
-  else
-  {
-    chassis->target.cycle_speed = 0;
-  }
+        chassis->target.front_speed = vx * c - vy * s;
+        chassis->target.left_speed  = vx * s + vy * c;
+  	}
+	else
+    {
+        chassis->target.front_speed = vx;
+        chassis->target.left_speed  = vy;
+    }
+    if (rc_sensor_info.s2.value == RC_SW_UP)
+  	{
+      chassis->target.cycle_speed = TURN_CYCLE_SPEED;
+  	}
+  	else if (rc_sensor_info.s2.value == RC_SW_MID)
+ 	{
+		chassis->target.cycle_speed = RC_RIGH_CH_LR_VALUE / 660.f * TURN_CYCLE_SPEED;
+  	}
+  	else
+  	{
+    	chassis->target.cycle_speed = 0;
+  	}
 }
 
 static void Chassis_Inverse_Calculate(Chassis_t* chassis)

@@ -588,6 +588,11 @@
               <FileType>1</FileType>
               <FilePath>..\Application\ModuleLayer\gimbal.c</FilePath>
             </File>
+            <File>
+              <FileName>Shoot.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Application\ModuleLayer\Shoot.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

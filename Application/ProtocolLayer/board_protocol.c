@@ -73,3 +73,13 @@ void Board_Rx_Gimbal_Data(Board_t* board, uint8_t* rxBuf)
 
 	board->last_rx_tick = HAL_GetTick();
 }
+void Board_Tx_Shoot_Data(Board_t* board)
+{
+	uint8_t pkt[8] = {0};
+
+	pkt[0] |= board->tx_data->shoot_data.enable << 0;
+	pkt[0] |= board->tx_data->shoot_data.mode  << 1;
+	pkt[0] |= board->tx_data->shoot_data.trigger << 2;
+
+	CAN_SendData(&hfdcan2, ID_SHOOT_DATA, pkt);
+}
