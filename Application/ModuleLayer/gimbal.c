@@ -14,6 +14,7 @@ Chassis_yaw_t chassis_yaw;
 extern imu_sensor_t imu_sensor;
 extern Board_Rx_Data_t board_rx_data;
 
+static float gimbal_front_offset = 0.f;
 static void Gimbal_Data_Update(Gimbal_t* gimbal)
 {
 	gimbal->data.yaw_imu = board.rx_data->gimbal_data.yaw_imu;
@@ -35,8 +36,16 @@ static void Gimbal_Yaw_Update(Gimbal_t* gimbal)
 {
 	if(rc_sensor_info.s2.value == RC_SW_MID)
 	{
-		gimbal->target.yaw_imu_tar = Gimbal_Get_Front(gimbal);
+		gimbal->target.yaw_imu_tar = motor_half_cycle(chassis_yaw.yaw_current + gimbal_front_offset,360.f);
 		return;
+	}
+
+	if(rc_sensor_info.s2.value == RC_SW_DOWN)
+	{
+		if(rc_sensor_info.s2.value_last != RC_SW_DOWN)
+		{
+			gimbal->target.yaw_imu_tar = Gimbal_Get_Front(gimbal);
+		}
 	}
 
 	if(rc_sensor_info.s2.value == RC_SW_UP)
@@ -113,6 +122,11 @@ void Gimbal_Work(Gimbal_t* gimbal)
 {
 	Gimbal_Data_Update(gimbal);
 	Chassis_Data_Update(&chassis_yaw);
+
+	if(rc_sensor_info.s1.value != RC_SW_DOWN)
+	{
+		gimbal_front_offset = Gimbal_Get_Front(gimbal) - chassis_yaw.yaw_current;
+	}
 	Gimbal_Target_Update(gimbal);
 	Gimbal_Car_State_Update(gimbal);
 	Gimbal_Cmd_Transmit(gimbal);

@@ -8,7 +8,7 @@
 #define   GIMBAL_PITCH_STEP_RAD  (0.05f * PI / 180.f)
 #define   GIMBAL_PITCH_MIN -0.9687f
 #define   GIMBAL_PITCH_MAX 1.5970f
-#define   GIMBAL_YAW_FRONT       -1.46009731
+#define   GIMBAL_YAW_FRONT       -1.4839731
 #define   GIMBAL_RC_LOST_TICK    60
 #define   GIMBAL_PITCH_MIDDLE    0.f
 

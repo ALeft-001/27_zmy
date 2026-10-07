@@ -23,12 +23,16 @@ static void Chassis_Target_Clear(Chassis_t* chassis)
 	chassis->target.front_speed = 0;
 	chassis->target.left_speed = 0;
 	chassis->target.cycle_speed = 0;
+
+	for(uint8_t i = 0; i < WHEEL_CNT; i++)
+	{
+		chassis->target.motor_speed[i] = 0;
+	}
 }
 
 static uint8_t Chassis_Should_Coast(Chassis_t* chassis)
 {
-	if(HAL_GetTick() - rc_sensor_info.last_rx_tick <= RC_LOST_TICK &&
-		rc_sensor_info.s1.value == RC_SW_UP)
+	if(HAL_GetTick() - rc_sensor_info.last_rx_tick <= RC_LOST_TICK && rc_sensor_info.s1.value == RC_SW_UP)
 	{
 		return 1;
 	}
@@ -84,11 +88,11 @@ static void Chassis_Target_Update(Chassis_t* chassis)
   	if (rc_sensor_info.s2.value == RC_SW_UP)
   	{
 		yaw = board.rx_data->gimbal_data.yaw_mec - GIMBAL_YAW_FRONT;
-        float c = cosf(yaw);
-        float s = sinf(yaw);
+        float cos = cosf(yaw);
+        float sin = sinf(yaw);
 
-        chassis->target.front_speed = vx * c - vy * s;
-        chassis->target.left_speed  = vx * s + vy * c;
+        chassis->target.front_speed = vx * cos - vy * sin;
+        chassis->target.left_speed  = vx * sin + vy * cos;
   	}
 	else
     {
