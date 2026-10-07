@@ -49,11 +49,18 @@ static void Gimbal_Pitch_Data_Update(Gimbal_t* gimbal)
 	pitch_speed_filter = PITCH_SPEED_FILTER_ALPHA * pitch_speed_raw + (1.f - PITCH_SPEED_FILTER_ALPHA) * pitch_speed_filter;
 }
 
+static float Yaw_Mec_Reduce(float angle)
+{
+	angle = motor_half_cycle(angle, P_MAX - P_MIN);
+	angle = motor_half_cycle(angle, 2.f * PI);
+	return motor_half_cycle(angle, 2.f * PI);
+}
+
 static void Gimbal_Tx_Data_Update(Gimbal_t* gimbal)
 {
 	board.tx_data->gimbal_data.yaw_imu   = imu_sensor.info->base_info.yaw;
 	board.tx_data->gimbal_data.pitch_imu = imu_sensor.info->base_info.pitch;
-	board.tx_data->gimbal_data.yaw_mec   = Yaw_Motor.rx_data->motor_angle;
+	board.tx_data->gimbal_data.yaw_mec   = Yaw_Mec_Reduce(Yaw_Motor.rx_data->motor_angle);
 	board.tx_data->gimbal_data.pitch_mec = gimbal->pitch_mec_angle;
 }
 
