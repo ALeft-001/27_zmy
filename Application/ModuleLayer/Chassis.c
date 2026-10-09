@@ -124,7 +124,7 @@ static void Chassis_Inverse_Calculate(Chassis_t* chassis)
 
 	if(trans + rotate > CHASSIS_MAX_SPEED)
 	{
-		float rotate_limit = CHASSIS_MAX_SPEED * 0.6f;
+		float rotate_limit = CHASSIS_MAX_SPEED * 0.5f;
 
 		if(rotate > rotate_limit)
 		{

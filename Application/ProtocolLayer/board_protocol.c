@@ -48,13 +48,17 @@ void Board_Tx_Gimbal_Target(Board_t* board)
 {
 	uint8_t pkt[8] = {0};
 
+	uint16_t t1 = board_float_to_uint(board->tx_data->gimbal_target_data.yaw_mec_tar, -12.5f, 12.5f, 65535);
 	uint16_t t2 = board_float_to_uint(board->tx_data->gimbal_target_data.yaw_imu_tar, -360.f, 360.f, 65535);
 	uint16_t t3 = board_float_to_uint(board->tx_data->gimbal_target_data.pitch_mec_tar, -4.f, 4.f, 65535);
 
+	pkt[0] = t1 >> 8;
+	pkt[1] = t1;
 	pkt[2] = t2 >> 8;
 	pkt[3] = t2;
 	pkt[4] = t3 >> 8;
 	pkt[5] = t3;
+	pkt[6] = board->tx_data->gimbal_target_data.yaw_mode;
 
 	CAN_SendData(&hfdcan2, ID_GIMBAL_TARGET, pkt);
 }
@@ -73,6 +77,13 @@ void Board_Rx_Gimbal_Data(Board_t* board, uint8_t* rxBuf)
 
 	board->last_rx_tick = HAL_GetTick();
 }
+void Board_Rx_Lift_Data(Board_t* board, uint8_t* rxBuf)
+{
+	board->rx_data->lift_state = rxBuf[0];
+
+	board->last_rx_tick = HAL_GetTick();
+}
+
 void Board_Tx_Shoot_Data(Board_t* board)
 {
 	uint8_t pkt[8] = {0};
@@ -80,6 +91,7 @@ void Board_Tx_Shoot_Data(Board_t* board)
 	pkt[0] |= board->tx_data->shoot_data.enable << 0;
 	pkt[0] |= board->tx_data->shoot_data.mode  << 1;
 	pkt[0] |= board->tx_data->shoot_data.trigger << 2;
+	pkt[0] |= board->tx_data->shoot_data.lift << 3;
 
 	CAN_SendData(&hfdcan2, ID_SHOOT_DATA, pkt);
 }

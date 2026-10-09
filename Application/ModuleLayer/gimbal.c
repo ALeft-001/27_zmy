@@ -1,4 +1,5 @@
 #include "gimbal.h"
+#include "Lift.h"
 #include "board.h"
 #include "rc_sensor.h"
 #include "rp_math.h"
@@ -7,54 +8,40 @@ static void Gimbal_Data_Update(Gimbal_t* gimbal);
 static void Gimbal_Target_Update(Gimbal_t* gimbal);
 static void Gimbal_Car_State_Update(Gimbal_t* gimbal);
 static void Gimbal_Cmd_Transmit(Gimbal_t* gimbal);
-static void Chassis_Data_Update(Chassis_yaw_t* chassis_yaw);
 
 Gimbal_t gimbal = {	.mode = G_SLEEP,};
-Chassis_yaw_t chassis_yaw;
-extern imu_sensor_t imu_sensor;
 extern Board_Rx_Data_t board_rx_data;
 
-static float gimbal_front_offset = 0.f;
 static void Gimbal_Data_Update(Gimbal_t* gimbal)
 {
 	gimbal->data.yaw_imu = board.rx_data->gimbal_data.yaw_imu;
 }
 
-static void Chassis_Data_Update(Chassis_yaw_t* chassis_yaw)
-{
-	chassis_yaw->yaw_last = chassis_yaw->yaw_current;
-	chassis_yaw->yaw_current = imu_sensor.info->base_info.yaw;
-}
-
-static float Gimbal_Get_Front(Gimbal_t* gimbal)
-{
-	float front = gimbal->data.yaw_imu + motor_half_cycle(GIMBAL_YAW_FRONT - board.rx_data->gimbal_data.yaw_mec, 25) * (180.f / PI);
-	return motor_half_cycle(front,360.f);
-}
-
 static void Gimbal_Yaw_Update(Gimbal_t* gimbal)
 {
-	if(rc_sensor_info.s2.value == RC_SW_MID)
+	uint8_t yaw_mode = 1;
+
+	if(rc_sensor_info.s2.value == RC_SW_MID
+		|| lift.yaw_lock != 0
+		|| gimbal->center_done == 0)
 	{
-		gimbal->target.yaw_imu_tar = motor_half_cycle(chassis_yaw.yaw_current + gimbal_front_offset,360.f);
+		yaw_mode = 0;
+	}
+
+	if(yaw_mode != gimbal->target.yaw_mode)
+	{
+		gimbal->target.yaw_imu_tar = gimbal->data.yaw_imu
+			+ motor_half_cycle(GIMBAL_YAW_FRONT - board.rx_data->gimbal_data.yaw_mec, 2.f * PI) / PI * 180.f;
+	}
+
+	gimbal->target.yaw_mode = yaw_mode;
+
+	if(yaw_mode == 0)
+	{
+		gimbal->target.yaw_mec_tar = GIMBAL_YAW_FRONT;
 		return;
 	}
 
-	if(rc_sensor_info.s2.value == RC_SW_DOWN)
-	{
-		if(rc_sensor_info.s2.value_last != RC_SW_DOWN)
-		{
-			gimbal->target.yaw_imu_tar = Gimbal_Get_Front(gimbal);
-		}
-	}
-
-	if(rc_sensor_info.s2.value == RC_SW_UP)
-	{
-		if(rc_sensor_info.s2.value_last != RC_SW_UP)
-		{
-			gimbal->target.yaw_imu_tar = Gimbal_Get_Front(gimbal);
-		}
-	}
 	gimbal->target.yaw_imu_tar -= RC_RIGH_CH_LR_VALUE / 660.f * GIMBAL_YAW_STEP;
 	gimbal->target.yaw_imu_tar = motor_half_cycle(gimbal->target.yaw_imu_tar, 360.f);
 }
@@ -74,7 +61,7 @@ static void Gimbal_Target_Update(Gimbal_t* gimbal)
 		return;
 	}
 
-	if(rc_sensor_info.s1.value != RC_SW_DOWN)
+	if(rc_sensor_info.s1.value != RC_SW_DOWN && rc_sensor_info.s1.value != RC_SW_UP)
 	{
 		gimbal->init_flag = 0;
 		gimbal->mode = G_INIT;
@@ -86,8 +73,11 @@ static void Gimbal_Target_Update(Gimbal_t* gimbal)
 	if(gimbal->init_flag == 0)
 	{
 		gimbal->init_flag = 1;
-		gimbal->target.yaw_imu_tar = Gimbal_Get_Front(gimbal); 
-		gimbal->target.pitch_mec_tar = GIMBAL_PITCH_MIDDLE;   
+		gimbal->center_done = 0;
+		gimbal->center_tick = 0;
+		gimbal->target.yaw_mode = 0;
+		gimbal->target.yaw_mec_tar = GIMBAL_YAW_FRONT;
+		gimbal->target.pitch_mec_tar = GIMBAL_PITCH_MIDDLE;
 		return;
 	}
 
@@ -96,7 +86,26 @@ static void Gimbal_Target_Update(Gimbal_t* gimbal)
 		return;
 	}
 
+	if(gimbal->center_done == 0)
+	{
+		gimbal->center_tick ++;
+
+		if(gimbal->center_tick > GIMBAL_CENTER_TIMEOUT
+			|| (fabsf(board.rx_data->gimbal_data.pitch_mec - GIMBAL_PITCH_MIDDLE) <= LIFT_PITCH_TOL
+				&& fabsf(motor_half_cycle(GIMBAL_YAW_FRONT - board.rx_data->gimbal_data.yaw_mec, 2.f * PI)) <= LIFT_YAW_TOL))
+		{
+			gimbal->center_done = 1;
+		}
+	}
+
 	Gimbal_Yaw_Update(gimbal);
+
+	if(lift.pitch_lock != 0 || gimbal->center_done == 0)
+	{
+		gimbal->target.pitch_mec_tar = GIMBAL_PITCH_MIDDLE;
+		return;
+	}
+
 	Gimbal_Pitch_Update(gimbal);
 }
 
@@ -104,7 +113,8 @@ static void Gimbal_Car_State_Update(Gimbal_t* gimbal)
 {
 	uint8_t car_state = CAR_SLEEP;
 
-	if(gimbal->init_flag != 0 && rc_sensor_info.s1.value == RC_SW_DOWN)
+	if(gimbal->init_flag != 0
+		&& (rc_sensor_info.s1.value == RC_SW_DOWN || rc_sensor_info.s1.value == RC_SW_UP))
 	{
 		car_state = CAR_RC;
 	}
@@ -114,6 +124,8 @@ static void Gimbal_Car_State_Update(Gimbal_t* gimbal)
 
 static void Gimbal_Cmd_Transmit(Gimbal_t* gimbal)
 {
+	board.tx_data->gimbal_target_data.yaw_mode = gimbal->target.yaw_mode;
+	board.tx_data->gimbal_target_data.yaw_mec_tar = gimbal->target.yaw_mec_tar;
 	board.tx_data->gimbal_target_data.yaw_imu_tar = gimbal->target.yaw_imu_tar;
 	board.tx_data->gimbal_target_data.pitch_mec_tar = gimbal->target.pitch_mec_tar;
 }
@@ -121,12 +133,7 @@ static void Gimbal_Cmd_Transmit(Gimbal_t* gimbal)
 void Gimbal_Work(Gimbal_t* gimbal)
 {
 	Gimbal_Data_Update(gimbal);
-	Chassis_Data_Update(&chassis_yaw);
 
-	if(rc_sensor_info.s1.value != RC_SW_DOWN)
-	{
-		gimbal_front_offset = Gimbal_Get_Front(gimbal) - chassis_yaw.yaw_current;
-	}
 	Gimbal_Target_Update(gimbal);
 	Gimbal_Car_State_Update(gimbal);
 	Gimbal_Cmd_Transmit(gimbal);

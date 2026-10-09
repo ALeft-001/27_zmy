@@ -36,6 +36,10 @@ void CAN2_rxDataHandler(uint32_t rxId, uint8_t *rxBuf)
 			Board_Rx_Gimbal_Data(&board, rxBuf);
 			break;
 
+		case ID_LIFT_DATA:
+			Board_Rx_Lift_Data(&board, rxBuf);
+			break;
+
 		default:
 			break;
 	}

@@ -593,6 +593,11 @@
               <FileType>1</FileType>
               <FilePath>..\Application\ModuleLayer\Shoot.c</FilePath>
             </File>
+            <File>
+              <FileName>Lift.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Application\ModuleLayer\Lift.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

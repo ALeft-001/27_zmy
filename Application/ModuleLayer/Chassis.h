@@ -3,7 +3,7 @@
 
 #include  "motor.h"
 
-#define   WHEEL_MAX_RPM         2500
+#define   WHEEL_MAX_RPM         3500
 #define   WHEEL_MAX_SPEED       (WHEEL_MAX_RPM / _3508_REDUCT_RATIO / 60.f * 2.f * 3.14159265f)
 
 #define   CHASSIS_MAX_SPEED     WHEEL_MAX_SPEED
