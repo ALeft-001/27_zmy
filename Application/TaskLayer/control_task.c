@@ -1,5 +1,6 @@
 #include "control_task.h"
 #include "gimbal.h"
+#include "Lift.h"
 #include "Fric.h"
 #include "Dial.h"
 #include "Shoot.h"
@@ -18,6 +19,7 @@ void StartControlTask(void const * argument)
 		yaw = imu_sensor.info->base_info.yaw;
 
 		Gimbal_Work(&gimbal);
+		Lift_Work(&lift);
 		Fric_Work(&Fric);
 		Dial_Work(&dial);
 		Shoot_Work(&shoot);

@@ -7,16 +7,25 @@
 #include "drv_can.h"
 
 
-#define MAX_CURRENT_3508         20.f    
+#define MAX_CURRENT_3508         20.f
 #define TORQUE_CONSTANT_3508     0.3f
 #define REDUCT_RATIO_3508        (19.f/1.f)
 
+#define TORQUE_CONSTANT_2006     0.18f
+
+
+typedef enum Motor_RM_Type
+{
+	RM_TYPE_3508 = 0,
+	RM_TYPE_2006,
+}Motor_RM_Type_e;
 
 
 typedef struct Motor_RM_Born_Data_struct_t
 {
     uint8_t rxId;
     uint32_t stdId;
+	Motor_RM_Type_e type;
 	CAN_HandleTypeDef *hcan;
 }Motor_RM_Born_Data_t;
 
@@ -29,6 +38,10 @@ typedef struct Motor_RM_Rx_Data_struct_t
     int16_t torque_current_raw;
     int8_t temperature;
     uint32_t last_rx_tick;
+
+    uint16_t encoder_last;
+    uint8_t  angle_sum_flag;
+    float motor_angle_sum;
 }Motor_RM_Rx_Data_t;
 
 typedef struct Motor_RM_Ctrl_Data_struct_t

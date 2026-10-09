@@ -12,7 +12,8 @@
 #define  ID_CAR_DATA        0xD1
 #define  ID_GIMBAL_TARGET   0xD2
 #define  ID_GIMBAL_DATA     0xC2
-#define  ID_SHOOT_TARGET    0xD3      
+#define  ID_LIFT_DATA       0xC3
+#define  ID_SHOOT_TARGET    0xD3
 
 typedef struct{
 	uint8_t  car_state;
@@ -21,7 +22,10 @@ typedef struct{
 
 typedef struct{
 	float    yaw_imu_tar;
+	float    yaw_mec_tar;
 	float    pitch_mec_tar;
+
+	uint8_t  yaw_mode;
 
 }Board_Gimbal_Target_Data_t;
 
@@ -35,6 +39,7 @@ typedef struct{
 
 typedef struct{
 	Board_Gimbal_Data_t          gimbal_data;
+	uint8_t                      lift_state;
 
 }Board_Tx_Data_t;
 
@@ -43,6 +48,7 @@ typedef struct Board_Shoot_Rx_Data_Struct_t
 	uint8_t enable;
 	uint8_t mode;
 	uint8_t trigger;
+	uint8_t lift;
 }Board_Shoot_Rx_Data_t;
 
 
@@ -62,6 +68,7 @@ typedef struct Board_Struct_t{
 uint8_t Board_Is_Online(Board_t* board);
 
 void Board_Tx_Gimbal_Data(Board_t* board);
+void Board_Tx_Lift_Data(Board_t* board);
 
 void Board_Rx_Car_Data(Board_t* board, uint8_t* rxBuf);
 void Board_Rx_Gimbal_Target(Board_t* board, uint8_t* rxBuf);

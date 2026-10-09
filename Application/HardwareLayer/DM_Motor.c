@@ -8,6 +8,7 @@ static void Motor_SetControlPara(Motor_DM_t *motor);
 static uint16_t float_to_uint(float x, float x_min, float x_max, uint8_t bits);
 static float uint_to_float(uint16_t x_int, float x_min, float x_max, uint8_t bits);
 static void Motor_Send_Command(Motor_DM_t *motor, Motor_MIT_Command_e Command);
+static void Motor_Angle_Sum_Cal(Motor_DM_t *motor);
 
 void DM_Motor_Sleep(Motor_DM_t *motor)
 {
@@ -71,13 +72,17 @@ void DM_Set_Torque(Motor_DM_t *motor)
 		{
 			Motor_Send_Command(motor, Enter_Motor_Mode);
 		}
-		else
+		else if(motor->state_data->err_code == DM_Enable)
 		{
 			Motor_DM_Tx_Data_t* motor_tx_data = motor->tx_data;
 			motor_tx_data->Kp = 0;
 			motor_tx_data->Kd = 0;
 			Motor_SetControlPara(motor);
 			motor->tx_data->torque = 0;
+		}
+		else
+		{
+			Motor_Send_Command(motor, Clear_Err_Code);
 		}
 	}
 }
@@ -92,7 +97,45 @@ void DM_Motor_Update(Motor_DM_t *motor, uint8_t *rxBuf)
 
 	motor_rx_data->torque = uint_to_float((uint16_t)(((rxBuf[4]&0x0F) << 8) | rxBuf[5]), C_MIN, C_MAX, 12);
 
+	Motor_Angle_Sum_Cal(motor);
+
 	motor_rx_data->last_rx_tick = HAL_GetTick();
+}
+
+static void Motor_Angle_Sum_Cal(Motor_DM_t *motor)
+{
+	Motor_DM_Rx_Data_t* motor_rx_data = motor->rx_data;
+	float delta;
+
+	if(motor_rx_data->angle_sum_flag == 0)
+	{
+		motor_rx_data->angle_sum_flag = 1;
+		motor_rx_data->motor_angle_last = motor_rx_data->motor_angle;
+		motor_rx_data->motor_angle_sum = motor_rx_data->motor_angle;
+		return;
+	}
+
+	if(HAL_GetTick() - motor_rx_data->last_rx_tick > DM_MOTOR_LOST_TICK)
+	{
+		motor_rx_data->motor_angle_sum = motor_rx_data->motor_angle
+			+ roundf((motor_rx_data->motor_angle_sum - motor_rx_data->motor_angle) / P_CYCLE) * P_CYCLE;
+		motor_rx_data->motor_angle_last = motor_rx_data->motor_angle;
+		return;
+	}
+
+	delta = motor_rx_data->motor_angle - motor_rx_data->motor_angle_last;
+
+	if(delta > P_HALF)
+	{
+		delta -= P_CYCLE;
+	}
+	else if(delta < -P_HALF)
+	{
+		delta += P_CYCLE;
+	}
+
+	motor_rx_data->motor_angle_last = motor_rx_data->motor_angle;
+	motor_rx_data->motor_angle_sum += delta;
 }
 
 static void Motor_Send_Command(Motor_DM_t *motor, Motor_MIT_Command_e Command)
@@ -104,6 +147,9 @@ static void Motor_Send_Command(Motor_DM_t *motor, Motor_MIT_Command_e Command)
 		break;
 		case Zero_Position_Sensor:
 		Motor_Command[7] = 0xFE;
+		break;
+		case Clear_Err_Code:
+		Motor_Command[7] = 0xFB;
 		break;
 		default:
 		break;

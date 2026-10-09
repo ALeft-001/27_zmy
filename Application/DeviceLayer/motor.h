@@ -14,17 +14,23 @@
 #define ID_R_FRIC 		0x202
 #define ID_L_FRIC 		0x201
 #define ID_DIAL 		0x141
+#define ID_LIFT 		0x204
 
 extern  Motor_DM_t Yaw_Motor;
 extern  Motor_DM_t Pitch_Motor;
 extern  Motor_RM_t R_Fric;
 extern  Motor_RM_t L_Fric;
+extern  Motor_RM_t Lift_Motor;
 extern  Motor_RM_Set_t RM_Group;
 extern  LK_Motor_t Dial_Motor;
 
 extern  pid_ctrl_t yaw_gyro_outer;
 extern  pid_ctrl_t yaw_gyro_inner;
+extern  pid_ctrl_t yaw_mec_outer;
 extern  pid_ctrl_t pitch_mec_outer;
+extern  pid_ctrl_t lift_speed_pid;
+extern  pid_ctrl_t lift_angle_outer;
+extern  pid_ctrl_t lift_angle_inner;
 
 
 #endif

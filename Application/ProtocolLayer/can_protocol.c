@@ -27,6 +27,11 @@ void CAN1_rxDataHandler(uint32_t rxId, uint8_t *rxBuf)
 			LK_Motor_Update(&Dial_Motor, rxBuf);
 			break;
 		}
+		case ID_LIFT:
+		{
+			RM_Motor_Update(&Lift_Motor, rxBuf);
+			break;
+		}
 
 		default:
 			break;

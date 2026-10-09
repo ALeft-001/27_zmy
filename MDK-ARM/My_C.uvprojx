@@ -565,6 +565,16 @@
               <FileType>5</FileType>
               <FilePath>..\Application\ModuleLayer\Shoot.h</FilePath>
             </File>
+            <File>
+              <FileName>Lift.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Application\ModuleLayer\Lift.c</FilePath>
+            </File>
+            <File>
+              <FileName>Lift.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Application\ModuleLayer\Lift.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

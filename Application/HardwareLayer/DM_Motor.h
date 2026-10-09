@@ -12,11 +12,14 @@ typedef enum Motor_MIT_Command_enum_e
 {
 	Enter_Motor_Mode,
 	Zero_Position_Sensor,
+	Clear_Err_Code,
 
 }Motor_MIT_Command_e;
 
 #define P_MIN -12.5f    // Radians
 #define P_MAX 12.5f
+#define P_CYCLE (P_MAX - P_MIN)
+#define P_HALF  ((P_MAX - P_MIN) / 2.f)
 #define V_MIN -30.0f    // Rad/s
 #define V_MAX 30.0f
 #define KP_MIN 0.0f     // N-m/rad
@@ -63,6 +66,12 @@ typedef struct Motor_DM_Rx_Data_struct_t
 	float torque;
 
 	float motor_angle;
+
+	float motor_angle_sum;
+
+	float motor_angle_last;
+
+	uint8_t angle_sum_flag;
 
 	uint32_t last_rx_tick;
 }Motor_DM_Rx_Data_t;
