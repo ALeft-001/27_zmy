@@ -183,6 +183,16 @@
           <WinNumber>1</WinNumber>
           <ItemText>board.tx_data</ItemText>
         </Ww>
+        <Ww>
+          <count>6</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>Fric</ItemText>
+        </Ww>
+        <Ww>
+          <count>7</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>R_Fric_Rx</ItemText>
+        </Ww>
       </WatchWindow1>
       <WatchWindow2>
         <Ww>

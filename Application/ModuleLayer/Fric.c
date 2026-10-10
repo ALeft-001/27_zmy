@@ -5,7 +5,17 @@ static void Fric_Torque_Zero(Fric_t *fric);
 static void Fric_Speed_Pid(Fric_t* fric);
 
 float fric_Motor_Sign[FRIC_CNT] = {1.f, -1.f};
-Fric_t Fric; 
+Fric_t Fric;
+
+static float fric_speed_filter[FRIC_CNT];
+
+static void Fric_Speed_Filter_Update(void)
+{
+    for (uint8_t i = 0; i < FRIC_CNT; i++)
+    {
+        fric_speed_filter[i] = Lowpass(fric_speed_filter[i], RM_Group.motor[i]->rx_data->encoder_speed, FRIC_SPEED_FILTER_K);
+    }
+}
 
 static void Fric_Target_Update(Fric_t *fric)
 {
@@ -54,6 +64,7 @@ static void Fric_Cmd_Transmit(Fric_t* fric)
 void Fric_Work(Fric_t *fric)
 {
     Fric_Target_Update(fric);
+    Fric_Speed_Filter_Update();
 
     if (Fric_Is_Online() == 0 || fric->target.speed <= 0.f)
     {
@@ -83,7 +94,7 @@ uint8_t Fric_Is_Ready(void)
     uint8_t i = 0; 
     for(;i < FRIC_CNT;i++)
     {
-        if(abs(RM_Group.motor[i]->rx_data->encoder_speed) < FRIC_READY_SPEED)
+        if(abs(fric_speed_filter[i]) < FRIC_READY_SPEED)
         {
             return 0;
         }

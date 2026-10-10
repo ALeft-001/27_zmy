@@ -3,19 +3,14 @@
 
 #include "stdint.h"
 
-#define LIFT_MIN_OFFSET_DOWN      50.f
-#define LIFT_ANGLE_TOL       10.f
-#define LIFT_DEFAULT_TRAVEL  1500.f
+#define LIFT_EXTEND          0
+#define LIFT_RETRACT         1
+#define LIFT_HOLD            2
 
-#define LIFT_FIND_SPEED      1000.f
-#define LIFT_FIND_CURRENT    1000.f
-#define LIFT_BLOCK_TICK      60
-#define LIFT_FIND_TIMEOUT    8000
-#define LIFT_FIND_PITCH_TOL  0.05f
-#define LIFT_FIND_YAW_TOL    0.15f
-#define LIFT_MOVE_TIMEOUT    8000
-#define LIFT_STUCK_ANGLE_TOL 0.01f
-#define LIFT_STUCK_TICK      1500
+#define LIFT_JOG_SPEED       250.f
+
+#define LIFT_JAM_SPEED       10.f
+#define LIFT_JAM_TICK        600
 
 #define LIFT_LOST_TICK       120
 
@@ -26,10 +21,9 @@
 
 typedef enum
 {
-	LIFT_DOWN = 0,
-	LIFT_UP,
-	LIFT_TO_DOWN,
+	LIFT_TO_DOWN = 0,
 	LIFT_TO_UP,
+	LIFT_HOLDING,
 }Lift_State_e;
 
 typedef enum
@@ -44,20 +38,12 @@ typedef struct Lift_Struct_t
 	Lift_State_e state;
 	Lift_Mode_e  mode;
 
-	float angle_min;
-	float angle_max;
 	float target_angle;
 	float target_speed;
 	float out;
 
-	float angle_last;
-	uint16_t block_tick;
-	uint16_t find_tick;
-	uint16_t move_tick;
-	uint16_t stuck_tick;
-
-	uint8_t  is_find_limit;
-	uint8_t  move_fault;
+	uint16_t jam_tick;
+	uint8_t  jam;
 }Lift_t;
 
 extern Lift_t lift;

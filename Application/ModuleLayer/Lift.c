@@ -1,23 +1,19 @@
 #include "Lift.h"
 #include "motor.h"
-#include "gimbal.h"
 #include "board.h"
 #include "PID.h"
-#include "rp_math.h"
 #include "math.h"
 
 Lift_t lift =
 {
-	.state = LIFT_TO_UP,
+	.state = LIFT_HOLDING,
 	.mode  = LIFT_STOP,
 };
 
 static void Lift_Target_Update(Lift_t* lift);
-static void Lift_Find_Record(Lift_t* lift, float angle);
-static void Lift_Block_Check(Lift_t* lift);
 static void Lift_State_Machine(Lift_t* lift);
 static void Lift_Pid_Calculate(Lift_t* lift);
-static void Lift_Stuck_Check(Lift_t* lift);
+static void Lift_Jam_Check(Lift_t* lift);
 static void Lift_Tx_Update(Lift_t* lift);
 static uint8_t Lift_Get_State(void);
 
@@ -28,96 +24,52 @@ static uint8_t Lift_Get_State(void)
 		return LIFT_STATE_UNKNOWN;
 	}
 
-	switch(lift.state)
-	{
-	case LIFT_UP:
-		return LIFT_STATE_UP;
-
-	case LIFT_DOWN:
-		return LIFT_STATE_DOWN;
-
-	default:
-		return LIFT_STATE_MOVING;
-	}
+	return LIFT_STATE_MOVING;
 }
 
 static void Lift_Target_Update(Lift_t* lift)
 {
+	Lift_State_e state;
+
 	if(Board_Is_Online(&board) == 0)
 	{
 		return;
 	}
 
-	if(board.rx_data->shoot_target.lift != 0)
+	if(board.rx_data->shoot_target.lift == LIFT_EXTEND)
 	{
-		if(lift->state != LIFT_TO_DOWN && lift->state != LIFT_DOWN)
-		{
-			lift->state = LIFT_TO_DOWN;
-			lift->move_tick = 0;
-			lift->move_fault = 0;
-		}
+		state = LIFT_TO_UP;
+	}
+	else if(board.rx_data->shoot_target.lift == LIFT_RETRACT)
+	{
+		state = LIFT_TO_DOWN;
 	}
 	else
 	{
-		if(lift->state != LIFT_TO_UP && lift->state != LIFT_UP)
+		if(lift->state == LIFT_HOLDING && lift->mode == LIFT_ANGLE)
 		{
-			lift->state = LIFT_TO_UP;
-			lift->move_tick = 0;
-			lift->move_fault = 0;
+			return;
 		}
-	}
-}
 
-static void Lift_Find_Record(Lift_t* lift, float angle)
-{
-	lift->angle_min = angle + LIFT_MIN_OFFSET_DOWN;
-	lift->angle_max = lift->angle_min + LIFT_DEFAULT_TRAVEL;
+		lift->state = LIFT_HOLDING;
+		lift->target_angle = Lift_Motor.rx_data->motor_angle_sum;
+		lift->jam = 0;
 
-	lift->is_find_limit = 1;
-	lift->mode = LIFT_STOP;
-	lift->state = LIFT_DOWN;
-}
-
-static void Lift_Block_Check(Lift_t* lift)
-{
-	if(lift->is_find_limit != 0)
-	{
 		return;
 	}
 
-	if(fabsf((float)Lift_Motor.rx_data->torque_current_raw) >= LIFT_FIND_CURRENT)
+	if(lift->state != state)
 	{
-		lift->block_tick ++;
+		lift->jam = 0;
+		lift->jam_tick = 0;
+	}
 
-		if(lift->block_tick >= LIFT_BLOCK_TICK)
-		{
-			lift->block_tick = 0;
-			Lift_Find_Record(lift, Lift_Motor.rx_data->motor_angle_sum);
-		}
-	}
-	else
-	{
-		lift->block_tick = 0;
-	}
+	lift->state = state;
 }
 
 static void Lift_State_Machine(Lift_t* lift)
 {
-	if(lift->is_find_limit == 0)
-	{
-		lift->mode = LIFT_SPEED;
-		lift->target_speed = -LIFT_FIND_SPEED;
-		lift->find_tick ++;
-
-		if(lift->find_tick > LIFT_FIND_TIMEOUT)
-		{
-			Lift_Find_Record(lift, Lift_Motor.rx_data->motor_angle_sum);
-		}
-
-		return;
-	}
-
-	if(lift->move_fault != 0)
+	if(lift->jam != 0)
 	{
 		lift->mode = LIFT_STOP;
 		return;
@@ -125,36 +77,18 @@ static void Lift_State_Machine(Lift_t* lift)
 
 	switch(lift->state)
 	{
-	case LIFT_TO_DOWN:
-		lift->mode = LIFT_ANGLE;
-		lift->target_angle = lift->angle_min;
-		lift->move_tick ++;
-
-		if(fabsf(Lift_Motor.rx_data->motor_angle_sum - lift->angle_min) <= LIFT_ANGLE_TOL)
-		{
-			lift->state = LIFT_DOWN;
-		}
-		else if(lift->move_tick > LIFT_MOVE_TIMEOUT)
-		{
-			lift->move_fault = 1;
-			lift->mode = LIFT_STOP;
-		}
+	case LIFT_TO_UP:
+		lift->mode = LIFT_SPEED;
+		lift->target_speed = LIFT_JOG_SPEED;
 		break;
 
-	case LIFT_TO_UP:
-		lift->mode = LIFT_ANGLE;
-		lift->target_angle = lift->angle_max;
-		lift->move_tick ++;
+	case LIFT_TO_DOWN:
+		lift->mode = LIFT_SPEED;
+		lift->target_speed = -LIFT_JOG_SPEED;
+		break;
 
-		if(fabsf(Lift_Motor.rx_data->motor_angle_sum - lift->angle_max) <= LIFT_ANGLE_TOL)
-		{
-			lift->state = LIFT_UP;
-		}
-		else if(lift->move_tick > LIFT_MOVE_TIMEOUT)
-		{
-			lift->move_fault = 1;
-			lift->mode = LIFT_STOP;
-		}
+	case LIFT_HOLDING:
+		lift->mode = LIFT_ANGLE;
 		break;
 
 	default:
@@ -183,30 +117,26 @@ static void Lift_Pid_Calculate(Lift_t* lift)
 	}
 }
 
-static void Lift_Stuck_Check(Lift_t* lift)
+static void Lift_Jam_Check(Lift_t* lift)
 {
-	float angle = Lift_Motor.rx_data->motor_angle_sum;
-
-	if(lift->mode != LIFT_ANGLE)
+	if(lift->state != LIFT_TO_DOWN || lift->mode != LIFT_SPEED)
 	{
-		lift->stuck_tick = 0;
-		lift->angle_last = angle;
+		lift->jam_tick = 0;
 		return;
 	}
 
-	if(fabsf(angle - lift->angle_last) >= LIFT_STUCK_ANGLE_TOL)
+	if(fabsf(Lift_Motor.rx_data->speed) >= LIFT_JAM_SPEED)
 	{
-		lift->angle_last = angle;
-		lift->stuck_tick = 0;
+		lift->jam_tick = 0;
 		return;
 	}
 
-	lift->stuck_tick ++;
+	lift->jam_tick ++;
 
-	if(lift->stuck_tick > LIFT_STUCK_TICK)
+	if(lift->jam_tick > LIFT_JAM_TICK)
 	{
-		lift->stuck_tick = 0;
-		lift->move_fault = 1;
+		lift->jam_tick = 0;
+		lift->jam = 1;
 		lift->mode = LIFT_STOP;
 		lift->out = 0.f;
 	}
@@ -215,32 +145,6 @@ static void Lift_Stuck_Check(Lift_t* lift)
 static void Lift_Tx_Update(Lift_t* lift)
 {
 	board.tx_data->lift_state = Lift_Get_State();
-}
-
-static float Yaw_Front_Err(void)
-{
-	float yaw_mec;
-
-	if(HAL_GetTick() - Yaw_Motor.rx_data->last_rx_tick > DM_MOTOR_LOST_TICK)
-	{
-		return 999.f;
-	}
-
-	yaw_mec = Yaw_Mec_Reduce(Yaw_Motor.rx_data->motor_angle);
-
-	return fabsf(motor_half_cycle(GIMBAL_YAW_FRONT - yaw_mec, 2.f * PI));
-}
-
-static uint8_t lift_cmd_last = 0;
-static uint8_t lift_cmd_seen = 0;
-
-static void Lift_Cmd_Check(void)
-{
-	if(board.rx_data->shoot_target.lift != lift_cmd_last)
-	{
-		lift_cmd_last = board.rx_data->shoot_target.lift;
-		lift_cmd_seen = 1;
-	}
 }
 
 void Lift_Work(Lift_t* lift)
@@ -255,35 +159,10 @@ void Lift_Work(Lift_t* lift)
 		return;
 	}
 
-	Lift_Cmd_Check();
-
-	if(lift->is_find_limit == 0 && lift_cmd_seen == 0)
-	{
-		lift->mode = LIFT_STOP;
-		lift->out = 0.f;
-		Lift_Motor.tx_data->torque = 0.f;
-		Lift_Tx_Update(lift);
-		return;
-	}
-
 	Lift_Target_Update(lift);
-
-	if(lift->is_find_limit == 0
-		&& (fabsf(gimbal.pitch_mec_angle) > LIFT_FIND_PITCH_TOL
-			|| Yaw_Front_Err() > LIFT_FIND_YAW_TOL))
-	{
-		lift->find_tick = 0;
-		lift->mode = LIFT_STOP;
-		lift->out = 0.f;
-		Lift_Motor.tx_data->torque = 0.f;
-		Lift_Tx_Update(lift);
-		return;
-	}
-
-	Lift_Block_Check(lift);
 	Lift_State_Machine(lift);
 	Lift_Pid_Calculate(lift);
-	Lift_Stuck_Check(lift);
+	Lift_Jam_Check(lift);
 	Lift_Tx_Update(lift);
 
 	Lift_Motor.tx_data->torque = lift->out;

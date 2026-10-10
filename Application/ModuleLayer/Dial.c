@@ -31,7 +31,20 @@ static void Dial_Extern_Update(Dial_t* dial)
     dial->rx_data.speed = Dial_Motor.rx_data->speed;
     dial->rx_data.current = Dial_Motor.rx_data->current;
     dial->rx_data.online = LK_Motor_Is_Ready(&Dial_Motor);
-    dial->rx_data.fric_online = Fric_Is_Online() && Fric_Is_Ready();
+
+    if (Fric_Is_Online() != 0 && Fric_Is_Ready() != 0)
+    {
+        dial->fric_lost_tick = 0;
+        dial->rx_data.fric_online = 1;
+    }
+    else if (dial->fric_lost_tick < DIAL_FRIC_LOST_TICK)
+    {
+        dial->fric_lost_tick++;
+    }
+    else
+    {
+        dial->rx_data.fric_online = 0;
+    }
 
     if (dial->rx_data.online == 0)
     {
@@ -41,13 +54,19 @@ static void Dial_Extern_Update(Dial_t* dial)
 
 static uint8_t Dial_Block_Check(Dial_t *dial)
 {
+    if(abs(dial->rx_data.angle - dial->stuck_angle) >= DIAL_STUCK_ANGLE)
+    {
+        dial->stuck_angle = dial->rx_data.angle;
+        dial->stuck_tick = 0;
+    }
+
     if(abs(dial->rx_data.speed) < DIAL_STUCK_SPEED && dial->rx_data.current > DIAL_STUCK_CURRENT)
     {
+        dial->stuck_tick++;
         if(dial->stuck_tick >= DIAL_STUCK_TICK)
         {
             return 1;
         }
-        dial->stuck_tick++;
     }
     else
     {
@@ -63,16 +82,57 @@ static void Dial_State_Machine(Dial_t * dial)
     float current_angle = dial->rx_data.angle;
     uint8_t stop_req = 0;
 
-    if (dial->target.enable == 0 || dial->rx_data.fric_online == 0)
+    if (dial->target.enable == 0
+        || (dial->rx_data.fric_online == 0 && dial->state != DIAL_SINGLE))
     {
         stop_req = 1;
         dial->target.trigger = 0;
         dial->target.mode = 0;
-        dial->last_trigger = 0;
     }
     else if (dial->state == DIAL_CONTINUOUS && dial->target.trigger == 0)
     {
         stop_req = 1;
+    }
+
+    if (stop_req != 0)
+    {
+        dial->rearm_tick = 0;
+        dial->single_armed = 0;
+    }
+    else if (dial->target.trigger == 0)
+    {
+        if (dial->rearm_tick < DIAL_REARM_TICK)
+        {
+            dial->rearm_tick++;
+        }
+        else
+        {
+            dial->single_armed = 1;
+        }
+    }
+    else
+    {
+        dial->rearm_tick = 0;
+    }
+
+    if (dial->target.mode == 0 && dial->target.trigger != 0 && dial->single_armed != 0)
+    {
+        dial->single_armed = 0;
+        dial->rearm_tick = 0;
+        dial->single_pending = 1;
+        dial->pending_tick = DIAL_PENDING_TICK;
+    }
+
+    if (dial->single_pending != 0)
+    {
+        if (dial->pending_tick > 0)
+        {
+            dial->pending_tick--;
+        }
+        else
+        {
+            dial->single_pending = 0;
+        }
     }
 
     if (stop_req != 0 && dial->state != DIAL_SLEEP && dial->state != DIAL_STOP)
@@ -96,6 +156,7 @@ static void Dial_State_Machine(Dial_t * dial)
         {
             dial->state = DIAL_WAITING;
             dial->state_tick = 0;
+            dial->sync_flag = 1;
             LK_Motor_Enable(&Dial_Motor);
         }
         break;
@@ -108,25 +169,26 @@ static void Dial_State_Machine(Dial_t * dial)
             dial->out.torque = 0.f;
             dial->state = DIAL_SLEEP;
             dial->state_tick = 0;
+            dial->sync_flag = 1;
         }
         break;
     case DIAL_WAITING:
-        dial->out.angle = current_angle;
-        dial->state_tick = 0;
-        if (Dial_Block_Check(dial) != 0)
+        if (dial->sync_flag != 0)
         {
-            dial->out.angle = current_angle - oneshoot;
-            dial->state = DIAL_REVERSE;
-            dial->stuck_tick = 0;
-            dial->state_tick = 0;
-            break;
+            dial->out.angle = current_angle;
+            dial->sync_flag = 0;
         }
-        if (dial->target.mode == 0 && dial->target.trigger != 0 && dial->last_trigger == 0)
+        dial->state_tick = 0;
+        dial->stuck_tick = 0;
+        if (dial->single_pending != 0)
         {
-            dial->out.angle = current_angle + oneshoot;
+            dial->single_pending = 0;
+            dial->out.angle += oneshoot;
             dial->state = DIAL_SINGLE;
             dial->stuck_tick = 0;
             dial->state_tick = 0;
+            dial->single_cnt++;
+            dial->single_exit_tick = 0;
         }
         else if (dial->target.mode == 1 && dial->target.trigger != 0)
         {
@@ -139,14 +201,21 @@ static void Dial_State_Machine(Dial_t * dial)
     case DIAL_SINGLE:
         if(Dial_Block_Check(dial) != 0)
         {
+            dial->block_cnt++;
+            dial->single_exit_tick = dial->state_tick;
             dial->out.angle = current_angle - oneshoot;
             dial->state = DIAL_REVERSE;
             dial->state_tick = 0;
             dial->stuck_tick = 0;
             break;
         }
-        if(abs(dial->out.angle - current_angle) <= DIAL_ARRIVE_ERROR ||dial->state_tick >= DIAL_SINGLE_TIMEOUT)
+        if(dial->state_tick >= DIAL_SINGLE_TIMEOUT
+            || (abs(dial->out.angle - current_angle) <= DIAL_ARRIVE_ERROR
+                && abs(dial->rx_data.speed) <= DIAL_SETTLE_SPEED)
+            || (abs(dial->out.angle - current_angle) <= DIAL_ARRIVE_LOOSE
+                && abs(dial->rx_data.speed) <= DIAL_STUCK_SPEED))
         {
+            dial->single_exit_tick = dial->state_tick;
             dial->state = DIAL_WAITING;
             dial->state_tick = 0;
             dial->stuck_tick = 0;
@@ -156,6 +225,7 @@ static void Dial_State_Machine(Dial_t * dial)
         dial->out.speed = DIAL_FIRE_HZ * DIAL_SPEED_PER_HZ;
         if (Dial_Block_Check(dial) != 0)
         {
+            dial->block_cnt++;
             dial->out.angle = current_angle - oneshoot;
             dial->state = DIAL_REVERSE;
             dial->state_tick = 0;
@@ -185,8 +255,6 @@ static void Dial_State_Machine(Dial_t * dial)
     dial->state = DIAL_SLEEP;
         break;
     }
-
-    dial->last_trigger = dial->target.trigger;
 }
 
 static void Dial_Output(Dial_t *dial)

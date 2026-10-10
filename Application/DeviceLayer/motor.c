@@ -20,13 +20,13 @@ LK_Motor_Tx_Data_t Dial_Tx_Data;
 
 pid_ctrl_t yaw_gyro_outer = { .kp = 10.0f, .ki = 0.05f, .kd = 0.0f, .integral_max = 200.0f, .out_max = 500.0f };
 pid_ctrl_t yaw_gyro_inner = { .kp = 0.04f, .ki = 0.0f, .kd = 0.0f, .integral_max = 0.0f, .out_max = 5.0f };
-pid_ctrl_t yaw_mec_outer = { .kp = 0.4f, .ki = 0.0f, .kd = 0.0f, .integral_max = 500.0f, .out_max = 6.0f };
+pid_ctrl_t yaw_mec_outer = { .kp = 0.15f, .ki = 0.0f, .kd = 0.0f, .integral_max = 500.0f, .out_max = 7.0f };
 pid_ctrl_t pitch_mec_outer = { .kp = 1.0f, .ki = 0.0f, .kd = 0.0f, .integral_max = 500.0f, .out_max = 10.0f };
 pid_ctrl_t L_Fric_Speed_Ctrl = { .kp = 6.0f, .ki = 0.f, .kd = 0.f, .integral_max =7000.f, .out_max = 10000.f };
 pid_ctrl_t R_Fric_Speed_Ctrl = { .kp = 6.0f, .ki = 0.f, .kd = 0.f, .integral_max =7000.f, .out_max = 10000.f };
-pid_ctrl_t lift_speed_pid = { .kp = 8.0f, .ki = 0.0f, .kd = 0.0f, .integral_max = 0.0f, .out_max = 300.0f };
-pid_ctrl_t lift_angle_outer = { .kp = 150.0f, .ki = 0.0f, .kd = 0.0f, .integral_max = 0.0f, .out_max = 300.0f };
-pid_ctrl_t lift_angle_inner = { .kp = 60.0f, .ki = 0.0f, .kd = 0.0f, .integral_max = 0.0f, .out_max = 700.0f };
+pid_ctrl_t lift_speed_pid = { .kp = 20.0f, .ki = 0.0f, .kd = 0.0f, .integral_max = 0.0f, .out_max = 700.0f };
+pid_ctrl_t lift_angle_outer = { .kp = 8.0f, .ki = 0.0f, .kd = 0.0f, .integral_max = 0.0f, .out_max = 300.0f };
+pid_ctrl_t lift_angle_inner = { .kp = 50.0f, .ki = 0.0f, .kd = 0.0f, .integral_max = 0.0f, .out_max = 700.0f };
 
 
 Motor_DM_Born_Data_t Yaw_Born_Data = { .tx_id = 0x002, .hcan = &hcan2 };

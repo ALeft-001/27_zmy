@@ -86,7 +86,7 @@ void Board_Rx_Shoot_Target(Board_t* board,uint8_t* rxbuf)
 	board->rx_data->shoot_target.enable = (t1 >> 0) & 0x01;
 	board->rx_data->shoot_target.mode = (t1 >> 1) & 0x01;
 	board->rx_data->shoot_target.trigger = (t1 >> 2) & 0x01;
-	board->rx_data->shoot_target.lift = (t1 >> 3) & 0x01;
+	board->rx_data->shoot_target.lift = (t1 >> 3) & 0x03;
 
 	board->last_rx_tick = HAL_GetTick();
 }

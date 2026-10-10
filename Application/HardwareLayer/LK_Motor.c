@@ -15,15 +15,20 @@ void LK_Motor_Update(LK_Motor_t* motor, uint8_t* rxBuf)
     switch(rxBuf[0])
     {
         case LK_MOTOR_CMD_READ_STATE:
+        case LK_MOTOR_CMD_TORQUE:
+        case LK_MOTOR_CMD_SPEED:
+        case LK_MOTOR_CMD_ANGLE:
             motor_rx_data->temperature = (int8_t)rxBuf[1];
             motor_rx_data->current = (int16_t)((uint16_t)rxBuf[2]  | (uint16_t) rxBuf[3] << 8);
             motor_rx_data->speed = (float)((int16_t)((uint16_t)rxBuf[4] |( (uint16_t)rxBuf[5] << 8)));
+            motor_rx_data->encoder = (uint16_t)((uint16_t)rxBuf[6] | (uint16_t)rxBuf[7] << 8);
             break;
         case LK_MOTOR_CMD_READ_ANGLE:
             for(int i=1;i<=7;i++)
             {
                 sum |= ((int64_t)rxBuf[i] << (8*(i-1)));
             }
+            sum = (int64_t)((uint64_t)sum << 8) >> 8;
             motor_rx_data->angle = (float)sum / 100.f;
             motor_rx_data->last_angle_tick = HAL_GetTick();
             break;

@@ -7,21 +7,28 @@
 #include "rp_math.h"
 
 #define DIAL_ONESHOT_ANGLE 360.f
-#define DIAL_ARRIVE_ERROR 2.75f
+#define DIAL_ARRIVE_ERROR 10.f
+#define DIAL_ARRIVE_LOOSE 20.f
+#define DIAL_SETTLE_SPEED 60.f
 #define DIAL_STUCK_SPEED 10.f
 
 #define DIAL_STUCK_CURRENT     400.f
 #define DIAL_STUCK_TICK        200
+#define DIAL_STUCK_ANGLE       20.f
 
-#define DIAL_SINGLE_TIMEOUT    500
-#define DIAL_REVERSE_TIMEOUT   500
-#define DIAL_RELOAD_TIMEOUT    500
+#define DIAL_FRIC_LOST_TICK    500
+
+#define DIAL_SINGLE_TIMEOUT    2500
+#define DIAL_REVERSE_TIMEOUT   1500
+#define DIAL_RELOAD_TIMEOUT    1500
 
 #define DIAL_READ_ANGLE_TICK   2
 #define DIAL_READ_STATE_TICK   20
 #define DIAL_ENABLE_TICK       100
 
-#define DIAL_MAX_SPEED         1000
+#define DIAL_MAX_SPEED         3600
+#define DIAL_PENDING_TICK      500
+#define DIAL_REARM_TICK        40
 #define DIAL_FIRE_HZ       10.f
 #define DIAL_SPEED_PER_HZ  360.f
 
@@ -70,7 +77,18 @@ typedef struct Dial_struct_t
     uint8_t state;
     uint32_t state_tick;
     uint32_t stuck_tick;
-    uint8_t last_trigger;
+    float stuck_angle;
+
+    uint8_t single_pending;
+    uint16_t pending_tick;
+    uint8_t single_armed;
+    uint16_t rearm_tick;
+    uint8_t sync_flag;
+    uint16_t fric_lost_tick;
+
+    uint16_t single_cnt;
+    uint16_t block_cnt;
+    uint32_t single_exit_tick;
 } Dial_t;
 
 extern Dial_t dial;
