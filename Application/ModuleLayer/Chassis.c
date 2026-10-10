@@ -5,16 +5,22 @@
 #include "board.h"
 #include "pid.h"
 #include "gimbal.h"
+#include "Lift.h"
 
 static void Chassis_Target_Clear(Chassis_t* chassis);
 static uint8_t Chassis_Should_Coast(Chassis_t* chassis);
 static void Chassis_Torque_Zero(Chassis_t* chassis);
+static float Chassis_Follow_Calc(void);
 static void Chassis_Target_Update(Chassis_t* chassis);
 static void Chassis_Inverse_Calculate(Chassis_t* chassis);
 static void Chassis_Pid_Calculate(Chassis_t* chassis);
 static void Chassis_Cmd_Transmit(Chassis_t* chassis);
 
 int8_t chassis_wheel_sign[WHEEL_CNT] = {1, 1, 1, 1};
+
+uint8_t spin_key_active = 0;
+
+static float chassis_mouse_spin = 0.f;
 
 Chassis_t chassis = {.wheel = &wheel_set,};
 
@@ -32,6 +38,16 @@ static void Chassis_Target_Clear(Chassis_t* chassis)
 
 static uint8_t Chassis_Should_Coast(Chassis_t* chassis)
 {
+	if(rc_lost_lock != 0)
+	{
+		return 1;
+	}
+
+	if(lift_key_active != 0)
+	{
+		return 1;
+	}
+
 	if(HAL_GetTick() - rc_sensor_info.last_rx_tick <= RC_LOST_TICK && rc_sensor_info.s1.value == RC_SW_UP)
 	{
 		return 1;
@@ -62,8 +78,26 @@ static void Chassis_Torque_Zero(Chassis_t* chassis)
 	RM_Set_Torque(chassis->wheel);
 }
 
+static float Chassis_Follow_Calc(void)
+{
+	float yaw_err = motor_half_cycle(board.rx_data->gimbal_data.yaw_mec - GIMBAL_YAW_FRONT, 2.f * PI);
+	float cycle = 0.f;
+
+	if(Board_Is_Online(&board) != 0
+		&& fabsf(board.rx_data->gimbal_data.yaw_mec) > 1e-5f
+		&& fabsf(yaw_err) > CHASSIS_FOLLOW_DEAD_RAD)
+	{
+		cycle = constrain(CHASSIS_FOLLOW_KP * fabsf(yaw_err) + CHASSIS_FOLLOW_MIN, 0.f, CHASSIS_FOLLOW_MAX);
+		cycle = (yaw_err > 0.f) ? -cycle : cycle;
+	}
+
+	return cycle;
+}
+
 static void Chassis_Target_Update(Chassis_t* chassis)
 {
+	spin_key_active = 0;
+
 	if(HAL_GetTick() - rc_sensor_info.last_rx_tick > RC_LOST_TICK)
 	{
 		Chassis_Target_Clear(chassis);
@@ -82,10 +116,39 @@ static void Chassis_Target_Update(Chassis_t* chassis)
 			return;
 	}
 
-	float vx = -RC_LEFT_CH_UD_VALUE / 660.f * FRONT_MAX_SPEED;
-	float vy = RC_LEFT_CH_LR_VALUE / 660.f * LEFT_MAX_SPEED;
+	spin_key_active = (rc_sensor_info.Shift.value != 0
+		&& gimbal.target.yaw_mode != 0
+		&& lift_lower_lock == 0) ? 1 : 0;
+
+	if(rc_sensor_info.s2.value == RC_SW_MID
+		&& gimbal.target.yaw_mode == 0
+		&& spin_key_active == 0)
+	{
+		if(rc_sensor_info.mouse_vx != 0)
+		{
+			chassis_mouse_spin = (float)rc_sensor_info.mouse_vx / CHASSIS_MOUSE_FULL * TURN_CYCLE_SPEED;
+			rc_sensor_info.mouse_vx = 0;
+		}
+		else
+		{
+			chassis_mouse_spin *= CHASSIS_MOUSE_DECAY;
+
+			if(fabsf(chassis_mouse_spin) < CHASSIS_MOUSE_MIN)
+			{
+				chassis_mouse_spin = 0.f;
+			}
+		}
+	}
+	else
+	{
+		chassis_mouse_spin = 0.f;
+	}
+
+	float vx = -(RC_LEFT_CH_UD_VALUE / 660.f + (float)(rc_sensor_info.W.value - rc_sensor_info.S.value)) * FRONT_MAX_SPEED;
+	float vy = (RC_LEFT_CH_LR_VALUE / 660.f - (float)(rc_sensor_info.A.value - rc_sensor_info.D.value)) * LEFT_MAX_SPEED;
 	float yaw = 0.f;
-  	if (rc_sensor_info.s2.value == RC_SW_UP)
+  	if ((rc_sensor_info.s2.value == RC_SW_UP || gimbal.turn_back != 0 || spin_key_active != 0)
+  		&& lift_lower_lock == 0)
   	{
 		yaw = board.rx_data->gimbal_data.yaw_mec - GIMBAL_YAW_FRONT;
         float cos = cosf(yaw);
@@ -99,13 +162,30 @@ static void Chassis_Target_Update(Chassis_t* chassis)
         chassis->target.front_speed = vx;
         chassis->target.left_speed  = vy;
     }
-    if (rc_sensor_info.s2.value == RC_SW_UP)
+    if ((rc_sensor_info.s2.value == RC_SW_UP || spin_key_active != 0)
+    	&& gimbal.target.yaw_mode != 0
+    	&& lift_lower_lock == 0)
   	{
       chassis->target.cycle_speed = TURN_CYCLE_SPEED;
   	}
   	else if (rc_sensor_info.s2.value == RC_SW_MID)
  	{
-		chassis->target.cycle_speed = RC_RIGH_CH_LR_VALUE / 660.f * TURN_CYCLE_SPEED;
+		if(gimbal.target.yaw_mode != 0)
+		{
+			chassis->target.cycle_speed = Chassis_Follow_Calc();
+		}
+		else if(chassis_mouse_spin != 0.f)
+		{
+			chassis->target.cycle_speed = chassis_mouse_spin;
+		}
+		else
+		{
+			chassis->target.cycle_speed = RC_RIGH_CH_LR_VALUE / 660.f * TURN_CYCLE_SPEED;
+		}
+  	}
+  	else if (rc_sensor_info.s2.value == RC_SW_DOWN && lift_lower_lock == 0)
+  	{
+		chassis->target.cycle_speed = Chassis_Follow_Calc();
   	}
   	else
   	{
@@ -124,7 +204,7 @@ static void Chassis_Inverse_Calculate(Chassis_t* chassis)
 
 	if(trans + rotate > CHASSIS_MAX_SPEED)
 	{
-		float rotate_limit = CHASSIS_MAX_SPEED * 0.5f;
+		float rotate_limit = CHASSIS_MAX_SPEED * 0.60f;
 
 		if(rotate > rotate_limit)
 		{

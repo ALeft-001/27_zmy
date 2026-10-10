@@ -3,7 +3,7 @@
 
 #include  "motor.h"
 
-#define   WHEEL_MAX_RPM         3500
+#define   WHEEL_MAX_RPM         4000
 #define   WHEEL_MAX_SPEED       (WHEEL_MAX_RPM / _3508_REDUCT_RATIO / 60.f * 2.f * 3.14159265f)
 
 #define   CHASSIS_MAX_SPEED     WHEEL_MAX_SPEED
@@ -11,6 +11,13 @@
 #define   LEFT_MAX_SPEED        50
 #define   CYCLE_MAX_SPEED       40
 #define   TURN_CYCLE_SPEED      8.2f
+#define   CHASSIS_FOLLOW_KP     16.f
+#define   CHASSIS_FOLLOW_MIN    5.f
+#define   CHASSIS_FOLLOW_MAX    16.5f
+#define   CHASSIS_FOLLOW_DEAD_RAD  0.035f
+#define   CHASSIS_MOUSE_FULL     10.f
+#define   CHASSIS_MOUSE_DECAY    0.98f
+#define   CHASSIS_MOUSE_MIN      0.05f
 
 #define   RC_LOST_TICK          60
 #define   WHEEL_LOST_TICK       20
@@ -37,6 +44,7 @@ typedef struct Chassis_Struct_t{
 }Chassis_t;
 
 extern Chassis_t chassis;
+extern uint8_t spin_key_active;
 
 void Chassis_Work(Chassis_t* chassis);
 

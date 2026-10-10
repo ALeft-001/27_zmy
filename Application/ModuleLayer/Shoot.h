@@ -5,6 +5,7 @@
 #include "stdint.h"
 
 #define SHOOT_RC_TRIGGER_SIGNAL 100
+#define SHOOT_RC_TRIGGER_RELEASE 70
 #define SHOOT_RC_TRIGGER_CONTINUE 550
 #define SHOOT_RC_LOST_TICK 60
 
