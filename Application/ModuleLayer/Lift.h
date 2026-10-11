@@ -8,9 +8,7 @@
 #define LIFT_HOLD            2
 
 #define LIFT_STATE_UNKNOWN   0
-#define LIFT_STATE_UP        1
-#define LIFT_STATE_DOWN      2
-#define LIFT_STATE_MOVING    3
+#define LIFT_STATE_ONLINE    1
 
 #define LIFT_PITCH_TOL       0.15f
 #define LIFT_YAW_TOL         0.15f

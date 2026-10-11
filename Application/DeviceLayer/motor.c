@@ -1,12 +1,14 @@
-/* Includes ------------------------------------------------------------------*/
 #include "motor.h"
 
-
+/**
+ * @brief 此文件用于初始化赋值
+ * 
+ */
 pid_ctrl_t wheel_speed_pid[WHEEL_CNT] = {
 	[WHEEL_LF] = { .kp = 0.15f, .ki = 0, .kd = 0, .integral_max = 0, .out_max = 2.1f },
-  [WHEEL_LB] = { .kp = 0.15f, .ki = 0, .kd = 0, .integral_max = 0, .out_max = 2.1f },
+    [WHEEL_LB] = { .kp = 0.15f, .ki = 0, .kd = 0, .integral_max = 0, .out_max = 2.1f },
 	[WHEEL_RF] = { .kp = 0.15f, .ki = 0, .kd = 0, .integral_max = 0, .out_max = 2.1f },
-  [WHEEL_RB] = { .kp = 0.15f, .ki = 0, .kd = 0, .integral_max = 0, .out_max = 2.1f },
+	[WHEEL_RB] = { .kp = 0.15f, .ki = 0, .kd = 0, .integral_max = 0, .out_max = 2.1f },
 };
 
 Motor_RM_Born_Data_t wheel_born_data[WHEEL_CNT] = {

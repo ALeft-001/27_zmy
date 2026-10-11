@@ -28,12 +28,11 @@ static void Lift_Request_Update(Lift_t* lift)
 	{
 		lift->pitch_ready = 0;
 		lift->yaw_ready = 0;
-		lift->request = LIFT_HOLD;
+		lift->request = LIFT_HOLD;//保持角度
 		return;
 	}
 
-	if(rc_sensor_info.s1.value == RC_SW_DOWN
-		&& (rc_sensor_info.Q.value != 0 || rc_sensor_info.E.value != 0))
+	if(rc_sensor_info.s1.value == RC_SW_DOWN && (rc_sensor_info.Q.value != 0 || rc_sensor_info.E.value != 0))
 	{
 		lift_key_active = 1;
 	}
@@ -47,15 +46,13 @@ static void Lift_Request_Update(Lift_t* lift)
 	}
 
 	tw = rc_sensor_info.thumbwheel.value;
-
-	if(lift->pitch_ready == 0
-		&& fabsf(board.rx_data->gimbal_data.pitch_mec - GIMBAL_PITCH_MIDDLE) <= LIFT_PITCH_TOL)
+	//云台两个东西都回到中位了
+	if(lift->pitch_ready == 0 && fabsf(board.rx_data->gimbal_data.pitch_mec - GIMBAL_PITCH_MIDDLE) <= LIFT_PITCH_TOL)
 	{
 		lift->pitch_ready = 1;
 	}
 
-	if(lift->yaw_ready == 0
-		&& fabsf(motor_half_cycle(GIMBAL_YAW_FRONT - board.rx_data->gimbal_data.yaw_mec, 2.f * PI)) <= LIFT_YAW_TOL)
+	if(lift->yaw_ready == 0 && fabsf(motor_half_cycle(GIMBAL_YAW_FRONT - board.rx_data->gimbal_data.yaw_mec, 2.f * PI)) <= LIFT_YAW_TOL)
 	{
 		lift->yaw_ready = 1;
 	}
@@ -64,7 +61,7 @@ static void Lift_Request_Update(Lift_t* lift)
 	{
 		if(rc_sensor_info.Q.value != 0)
 		{
-			lift->request = LIFT_EXTEND;
+			lift->request = LIFT_EXTEND;//上升
 		}
 		else
 		{
@@ -85,7 +82,7 @@ static void Lift_Request_Update(Lift_t* lift)
 
 	lift->request = (tw <= LIFT_TW_UP) ? LIFT_EXTEND : LIFT_HOLD;
 }
-
+//S1为UP时底盘云台关闭控制
 static void Lift_Lock_Update(Lift_t* lift)
 {
 	uint8_t lock = (rc_sensor_info.s1.value == RC_SW_UP || lift_key_active != 0) ? 1 : 0;

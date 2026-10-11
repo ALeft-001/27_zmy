@@ -11,7 +11,7 @@
 #define   LEFT_MAX_SPEED        50
 #define   CYCLE_MAX_SPEED       40
 #define   TURN_CYCLE_SPEED      8.2f
-#define   CHASSIS_FOLLOW_KP     16.f
+#define   CHASSIS_FOLLOW_KP     20.f
 #define   CHASSIS_FOLLOW_MIN    5.f
 #define   CHASSIS_FOLLOW_MAX    16.5f
 #define   CHASSIS_FOLLOW_DEAD_RAD  0.035f

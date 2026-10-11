@@ -1,3 +1,10 @@
+/**
+ * @file board_protocol.c
+ * @brief 板间层，发送云台目标，发射启动，升降启动的指令
+ * 
+ */
+
+
 #include "board_protocol.h"
 #include "drv_can.h"
 

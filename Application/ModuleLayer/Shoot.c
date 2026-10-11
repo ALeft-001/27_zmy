@@ -6,10 +6,11 @@ Shoot_t shoot;
 
 static uint8_t shoot_wheel_latch = 0;
 /**
- * @brief 
+ * @brief 发射下板控制，波轮在100-550的时候单发，波轮在550以上连发
  * 
  * @param shoot 
  */
+//mode = 0是单发，mode = 1是连发。trigger是是否按下了 
 static void Shoot_Target_Update(Shoot_t* shoot)
 {
     if(HAL_GetTick() - rc_sensor_info.last_rx_tick > SHOOT_RC_LOST_TICK)
@@ -20,7 +21,7 @@ static void Shoot_Target_Update(Shoot_t* shoot)
         shoot->target.trigger = 0;
 		return;
     }
-
+    //只有在拨一下复位再拨才发一颗，与上板的逻辑配合
     if (rc_sensor_info.thumbwheel.value >= SHOOT_RC_TRIGGER_SIGNAL)
     {
         shoot_wheel_latch = 1;
