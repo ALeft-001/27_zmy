@@ -4,6 +4,7 @@ static void Fric_Target_Update(Fric_t *fric);
 static void Fric_Torque_Zero(Fric_t *fric);
 static void Fric_Speed_Pid(Fric_t* fric);
 
+
 float fric_Motor_Sign[FRIC_CNT] = {1.f, -1.f};
 Fric_t Fric;
 

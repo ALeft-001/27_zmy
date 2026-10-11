@@ -1,6 +1,6 @@
 /* Includes ------------------------------------------------------------------*/
 #include "DM_Motor.h"
-
+//达妙电机电机指令
 static uint8_t Motor_Command[8] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFC};
 
 static void Motor_Send_Data(Motor_DM_t *motor, uint8_t* buf);
@@ -39,7 +39,7 @@ uint8_t DM_Motor_Is_Ready(Motor_DM_t *motor)
 
 	return 1;
 }
-
+//DM电机是否能正常进入使能
 void DM_Motor_Coast(Motor_DM_t *motor)
 {
 	motor->tx_data->torque = 0.f;
@@ -54,21 +54,11 @@ void DM_Motor_Coast(Motor_DM_t *motor)
 	}
 }
 
-void DM_Motor_ZeroPos(Motor_DM_t *motor)
-{
-	if(motor != NULL)
-	{
-		DM_Motor_Sleep(motor);
-
-		Motor_Send_Command(motor, Zero_Position_Sensor);
-	}
-}
-
 void DM_Set_Torque(Motor_DM_t *motor)
 {
 	if(motor != NULL)
 	{
-		if(motor->state_data->err_code == DM_Disable)
+		if(motor->state_data->err_code == DM_Disable)//DM电机使能
 		{
 			Motor_Send_Command(motor, Enter_Motor_Mode);
 		}
@@ -80,13 +70,13 @@ void DM_Set_Torque(Motor_DM_t *motor)
 			Motor_SetControlPara(motor);
 			motor->tx_data->torque = 0;
 		}
-		else
+		else //发生错误
 		{
 			Motor_Send_Command(motor, Clear_Err_Code);
 		}
 	}
 }
-
+//接收反馈
 void DM_Motor_Update(Motor_DM_t *motor, uint8_t *rxBuf)
 {
 	Motor_DM_Rx_Data_t* motor_rx_data = motor->rx_data;
@@ -95,17 +85,17 @@ void DM_Motor_Update(Motor_DM_t *motor, uint8_t *rxBuf)
 	motor_rx_data->motor_angle = uint_to_float((uint16_t)((rxBuf[1] << 8) | rxBuf[2]), P_MIN, P_MAX, 16);
 	motor_rx_data->speed = uint_to_float((uint16_t)((rxBuf[3] << 4) | (rxBuf[4] >> 4)), V_MIN, V_MAX, 12);
 
-	motor_rx_data->torque = uint_to_float((uint16_t)(((rxBuf[4]&0x0F) << 8) | rxBuf[5]), C_MIN, C_MAX, 12);
+	motor_rx_data->torque = uint_to_float((uint16_t)(((rxBuf[4]&0x0F) << 8) | rxBuf[5]), T_MIN, T_MAX, 12);
 
 	Motor_Angle_Sum_Cal(motor);
 
 	motor_rx_data->last_rx_tick = HAL_GetTick();
 }
-
+//跨圈计算
 static void Motor_Angle_Sum_Cal(Motor_DM_t *motor)
 {
 	Motor_DM_Rx_Data_t* motor_rx_data = motor->rx_data;
-	float delta;
+	float angle;
 
 	if(motor_rx_data->angle_sum_flag == 0)
 	{
@@ -117,36 +107,32 @@ static void Motor_Angle_Sum_Cal(Motor_DM_t *motor)
 
 	if(HAL_GetTick() - motor_rx_data->last_rx_tick > DM_MOTOR_LOST_TICK)
 	{
-		motor_rx_data->motor_angle_sum = motor_rx_data->motor_angle
-			+ roundf((motor_rx_data->motor_angle_sum - motor_rx_data->motor_angle) / P_CYCLE) * P_CYCLE;
+		motor_rx_data->motor_angle_sum = motor_rx_data->motor_angle + roundf((motor_rx_data->motor_angle_sum - motor_rx_data->motor_angle) / P_CYCLE) * P_CYCLE;
 		motor_rx_data->motor_angle_last = motor_rx_data->motor_angle;
 		return;
 	}
 
-	delta = motor_rx_data->motor_angle - motor_rx_data->motor_angle_last;
+	angle = motor_rx_data->motor_angle - motor_rx_data->motor_angle_last;
 
-	if(delta > P_HALF)
+	if(angle > P_HALF)
 	{
-		delta -= P_CYCLE;
+		angle -= P_CYCLE;
 	}
-	else if(delta < -P_HALF)
+	else if(angle < -P_HALF)
 	{
-		delta += P_CYCLE;
+		angle += P_CYCLE;
 	}
 
 	motor_rx_data->motor_angle_last = motor_rx_data->motor_angle;
-	motor_rx_data->motor_angle_sum += delta;
+	motor_rx_data->motor_angle_sum += angle;
 }
-
+//发指令
 static void Motor_Send_Command(Motor_DM_t *motor, Motor_MIT_Command_e Command)
 {
 	switch(Command)
 	{
 		case Enter_Motor_Mode:
 		Motor_Command[7] = 0xFC;
-		break;
-		case Zero_Position_Sensor:
-		Motor_Command[7] = 0xFE;
 		break;
 		case Clear_Err_Code:
 		Motor_Command[7] = 0xFB;
@@ -172,16 +158,16 @@ static void Motor_SetControlPara(Motor_DM_t *motor)
 	uint8_t* buf = motor_tx_data->tx_buff;
 
 	motor_tx_data->target_angle = constrain(motor_tx_data->target_angle, P_MIN, P_MAX);
-	motor_tx_data->target_speed = constrain(motor_tx_data->target_speed, V_MIN, V_MAX);
+	motor_tx_data->target_speed = constrain(motor_tx_data->target_speed, V_MIN, V_MAX); //实际上只发力矩，真正发送时这些都为0
 	motor_tx_data->Kp = constrain(motor_tx_data->Kp, KP_MIN, KP_MAX);
 	motor_tx_data->Kd = constrain(motor_tx_data->Kd, KD_MIN, KD_MAX);
 	motor_tx_data->torque = constrain(motor_tx_data->torque, T_MIN, T_MAX);
 
-	p = float_to_uint(motor_tx_data->target_angle,      P_MIN,  P_MAX,  16);
-	v = float_to_uint(motor_tx_data->target_speed,      V_MIN,  V_MAX,  12);
-	kp = float_to_uint(motor_tx_data->Kp,    KP_MIN, KP_MAX, 12);
-	kd = float_to_uint(motor_tx_data->Kd,    KD_MIN, KD_MAX, 12);
-	t = float_to_uint(motor_tx_data->torque,      T_MIN,  T_MAX,  12);
+	p = float_to_uint(motor_tx_data->target_angle,P_MIN,P_MAX, 16);
+	v = float_to_uint(motor_tx_data->target_speed, V_MIN, V_MAX, 12);
+	kp = float_to_uint(motor_tx_data->Kp, KP_MIN, KP_MAX, 12);
+	kd = float_to_uint(motor_tx_data->Kd, KD_MIN, KD_MAX, 12);
+	t = float_to_uint(motor_tx_data->torque, T_MIN,  T_MAX,  12);
 
 	buf[0] = p>>8;
 	buf[1] = p&0xFF;

@@ -5,6 +5,11 @@
 
 Shoot_t shoot;
 
+/**
+ * @brief 这只有将下板目标数据搬到结构体的作用，拨盘和摩擦轮有自己的工作函数
+ * 
+ * @param shoot 
+ */
 static void Shoot_Check(Shoot_t* shoot)
 {
     if(Board_Is_Online(&board) == 0  || board.rx_data->car_data.car_state == CAR_SLEEP)

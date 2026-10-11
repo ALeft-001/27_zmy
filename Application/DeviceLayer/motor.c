@@ -1,6 +1,10 @@
 #include "motor.h"
 
 
+/**
+ * @brief 此文件都是赋值初始化
+ * 
+ */
 extern CAN_HandleTypeDef hcan1;
 extern CAN_HandleTypeDef hcan2;
 Motor_DM_Rx_Data_t Yaw_Rx_Data;

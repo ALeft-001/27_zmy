@@ -7,6 +7,7 @@ static float RPM_to_Rads(Motor_RM_t *motor);
 static void Torque_to_Raw_Current(Motor_RM_t *motor);
 static void Motor_Angle_Sum_Cal(Motor_RM_t *motor);
 
+
 void RM_Motor_Update(Motor_RM_t *motor, uint8_t *rxBuf)
 {
     Motor_RM_Rx_Data_t *motor_data = motor->rx_data;
@@ -70,7 +71,7 @@ static float RPM_to_Rads(Motor_RM_t *motor)
 
     return motor->rx_data->encoder_speed / 60.f * 2.f * PI / REDUCT_RATIO_3508;
 }
-
+//跨圈处理，记录转的角度
 static void Motor_Angle_Sum_Cal(Motor_RM_t *motor)
 {
     Motor_RM_Rx_Data_t *motor_data = motor->rx_data;

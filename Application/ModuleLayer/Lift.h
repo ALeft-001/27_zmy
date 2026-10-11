@@ -15,9 +15,7 @@
 #define LIFT_LOST_TICK       120
 
 #define LIFT_STATE_UNKNOWN   0
-#define LIFT_STATE_UP        1
-#define LIFT_STATE_DOWN      2
-#define LIFT_STATE_MOVING    3
+#define LIFT_STATE_ONLINE    1
 
 typedef enum
 {

@@ -1,6 +1,5 @@
 #include "Dial.h"
 
-
 Dial_t dial;
 
 static uint32_t dial_read_tick = 0;
@@ -9,22 +8,22 @@ static void Dial_Feedback_Request(Dial_t* dial)
 {
     dial_read_tick++;
 
-    if(dial_read_tick % DIAL_READ_ANGLE_TICK == 0)
+    if(dial_read_tick % DIAL_READ_ANGLE_TICK == 0) //读角度
     {
         LK_Motor_Read_Angle(&Dial_Motor);
     }
 
-    if(dial_read_tick % DIAL_READ_STATE_TICK == 0)
+    if(dial_read_tick % DIAL_READ_STATE_TICK == 0) //读转速和电流
     {
         LK_Motor_Read_State(&Dial_Motor);
     }
 
-    if(dial->state != DIAL_SLEEP && dial_read_tick % DIAL_ENABLE_TICK == 0)
+    if(dial->state != DIAL_SLEEP && dial_read_tick % DIAL_ENABLE_TICK == 0) //使能帧
     {
         LK_Motor_Enable(&Dial_Motor);
     }
 }
-
+//搬数据进来，判断摩擦轮转速有没达到阈值还有检测
 static void Dial_Extern_Update(Dial_t* dial)
 {
     dial->rx_data.angle = Dial_Motor.rx_data->angle;
@@ -54,12 +53,13 @@ static void Dial_Extern_Update(Dial_t* dial)
 
 static uint8_t Dial_Block_Check(Dial_t *dial)
 {
+    //如果转角度大于堵转设定角度就不认为堵转
     if(abs(dial->rx_data.angle - dial->stuck_angle) >= DIAL_STUCK_ANGLE)
     {
         dial->stuck_angle = dial->rx_data.angle;
         dial->stuck_tick = 0;
     }
-
+    //如果速度不高于堵转设定最低速度，但有大电流时判断为堵转
     if(abs(dial->rx_data.speed) < DIAL_STUCK_SPEED && dial->rx_data.current > DIAL_STUCK_CURRENT)
     {
         dial->stuck_tick++;
@@ -75,7 +75,12 @@ static uint8_t Dial_Block_Check(Dial_t *dial)
 
     return 0;
 }
-
+/**
+ * @brief 这个状态机简单来说就是，进入然后看是否有单发排队（因为每次单发需要间隔一点点时间），然后堵转同时判断，在之后看有无连发请求，有则进入连发（并且同时堵转判断），
+ *        如果有堵转则进入到reload状态（回一个角度），堵转和连发之后都进入stop状态，最后停下，不断电，一般都停在waitting状态
+ * 
+ * @param dial 
+ */
 static void Dial_State_Machine(Dial_t * dial)
 {
     float oneshoot = DIAL_ONESHOT_ANGLE;
@@ -256,7 +261,7 @@ static void Dial_State_Machine(Dial_t * dial)
         break;
     }
 }
-
+//把状态机输出的状态都进行相应输出
 static void Dial_Output(Dial_t *dial)
 {
     if(dial->state == DIAL_SLEEP)

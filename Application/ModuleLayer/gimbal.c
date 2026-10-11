@@ -46,7 +46,7 @@ static void Gimbal_Mec_Data_Update(Gimbal_t* gimbal)
 	float yaw_speed_raw = Yaw_Motor.rx_data->speed;
 
 	gimbal->pitch_mec_angle = motor_half_cycle(Pitch_Motor.rx_data->motor_angle_sum - PITCH_MOTOR_ANGLE_MIDDLE, 2.f * PI);
-
+	//如果速度小于死区就不计算了
 	if(pitch_speed_raw < PITCH_SPEED_DEADBAND && pitch_speed_raw > -PITCH_SPEED_DEADBAND)
 	{
 		pitch_speed_raw = 0.f;
@@ -57,7 +57,7 @@ static void Gimbal_Mec_Data_Update(Gimbal_t* gimbal)
 		yaw_speed_raw = 0.f;
 	}
 
-	pitch_speed_filter = PITCH_SPEED_FILTER_ALPHA * pitch_speed_raw + (1.f - PITCH_SPEED_FILTER_ALPHA) * pitch_speed_filter;
+	pitch_speed_filter = PITCH_SPEED_FILTER_ALPHA * pitch_speed_raw + (1.f - PITCH_SPEED_FILTER_ALPHA) * pitch_speed_filter; //都作为阻尼项的计算项，低通滤波
 	yaw_speed_filter = YAW_SPEED_FILTER_ALPHA * (yaw_speed_raw / YAW_MEC_GEAR) + (1.f - YAW_SPEED_FILTER_ALPHA) * yaw_speed_filter;
 }
 
@@ -65,7 +65,7 @@ float Yaw_Mec_Reduce(float angle)
 {
 	return motor_half_cycle(angle / YAW_MEC_GEAR, 2.f * PI);
 }
-
+//发给下板的数据集
 static void Gimbal_Tx_Data_Update(Gimbal_t* gimbal)
 {
 	board.tx_data->gimbal_data.yaw_imu   = imu_sensor.info->base_info.yaw;
@@ -113,15 +113,17 @@ static void Gimbal_Pid_Calculate(Gimbal_t* gimbal)
 		yaw_mec_outer.err = motor_half_cycle(gimbal->target.yaw_mec_target - gimbal->yaw_mec_angle / PI * 180.f, 360.f);
 		single_pid_ctrl(&yaw_mec_outer);
 
-		gimbal->out.yaw_out = yaw_mec_outer.out - YAW_MEC_DAMPING * yaw_speed_filter;
+		gimbal->out.yaw_out = yaw_mec_outer.out - YAW_MEC_DAMPING * yaw_speed_filter;//在机械模式下云台速度比较快，加入一个阻尼项对角速度进行计算，防超调，与pitch类似
 	}
+	//陀螺仪档的双环控制
 	else
 	{
 		float err = motor_half_cycle(gimbal->target.yaw_target - imu_sensor.info->base_info.yaw, 360.f);
-
+		//角度环
 		yaw_gyro_outer.err = err;
 		single_pid_ctrl(&yaw_gyro_outer);
-
+		
+		//速度环
 		yaw_gyro_inner.target = yaw_gyro_outer.out;
 		yaw_gyro_inner.err = yaw_gyro_inner.target - imu_sensor.info->base_info.rate_yaw;
 		single_pid_ctrl(&yaw_gyro_inner);
@@ -132,8 +134,9 @@ static void Gimbal_Pid_Calculate(Gimbal_t* gimbal)
 	pitch_mec_outer.err = motor_half_cycle(gimbal->target.pitch_target - gimbal->pitch_mec_angle / PI * 180.f, 360.f);
 	single_pid_ctrl(&pitch_mec_outer);
 
-	gimbal->out.pitch_out = pitch_mec_outer.out - PITCH_MEC_DAMPING * pitch_speed_filter;
+	gimbal->out.pitch_out = pitch_mec_outer.out - PITCH_MEC_DAMPING * pitch_speed_filter;//因为重力前馈的方案，写的不太好，所以采用PID加阻尼的方案来维持炮筒
 }
+
 
 static void Gimbal_Cmd_Transmit(Gimbal_t* gimbal)
 {
@@ -154,6 +157,7 @@ static void Gimbal_Cmd_Transmit(Gimbal_t* gimbal)
 
 	DM_Set_Torque(&Pitch_Motor);
 }
+
 
 void Gimbal_Work(Gimbal_t* gimbal)
 {

@@ -11,25 +11,23 @@
 typedef enum Motor_MIT_Command_enum_e
 {
 	Enter_Motor_Mode,
-	Zero_Position_Sensor,
 	Clear_Err_Code,
 
 }Motor_MIT_Command_e;
 
-#define P_MIN -12.5f    // Radians
+#define P_MIN -12.5f   
 #define P_MAX 12.5f
 #define P_CYCLE (P_MAX - P_MIN)
 #define P_HALF  ((P_MAX - P_MIN) / 2.f)
-#define V_MIN -30.0f    // Rad/s
+#define V_MIN -30.0f    
 #define V_MAX 30.0f
-#define KP_MIN 0.0f     // N-m/rad
+#define KP_MIN 0.0f    
 #define KP_MAX 500.0f
-#define KD_MIN 0.0f     // N-m/rad/s
+#define KD_MIN 0.0f     
 #define KD_MAX 5.0f
-#define T_MIN -10.0f    // N.m
+#define T_MIN -10.0f    
 #define T_MAX 10.0f
-#define C_MIN -10.0f    // A
-#define C_MAX 10.0f
+
 
 #define DM_MOTOR_LOST_TICK 50
 
@@ -49,13 +47,8 @@ typedef struct Motor_DM_Born_Data_struct_t
 {
 	uint32_t tx_id;
 
-#ifdef __STM32F4xx_HAL_H
 	CAN_HandleTypeDef *hcan;
-#endif
 
-#ifdef STM32H7xx_HAL_H
-	FDCAN_HandleTypeDef *hcan;
-#endif
 
 }Motor_DM_Born_Data_t;
 
@@ -107,7 +100,6 @@ typedef struct Motor_DM_struct_t
 	Motor_DM_State_Data_t* state_data;
 }Motor_DM_t;
 
-/* Exported functions --------------------------------------------------------*/
 uint8_t DM_Motor_Is_Ready(Motor_DM_t *motor);
 void DM_Motor_Coast(Motor_DM_t *motor);
 void DM_Motor_Update(Motor_DM_t *motor, uint8_t *rxBuf);

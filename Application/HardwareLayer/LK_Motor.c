@@ -89,7 +89,7 @@ void LK_Set_Torque(LK_Motor_t* motor)
 
 void LK_Set_angle(LK_Motor_t* motor)
 {
-    int32_t angle = (int32_t)(motor->tx_data->angle * 100.f);
+    int32_t angle = (int32_t)(motor->tx_data->angle * 100.0f);
     uint32_t raw = (uint32_t)angle;
     uint16_t speed = motor->tx_data->max_speed;
 
